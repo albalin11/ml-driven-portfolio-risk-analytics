@@ -13,6 +13,7 @@ from jupyter_client.kernelspec import KernelSpecManager
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--mode', choices=['all', 'scripts', 'notebooks'], default='all')
+parser.add_argument('--part', type=int, choices=range(1, 6), help='Run only this stage; used by run_stages.py.')
 args = parser.parse_args()
 runtime = ROOT / 'outputs' / 'jupyter_runtime'
 runtime.mkdir(parents=True, exist_ok=True)
@@ -21,7 +22,10 @@ os.environ['IPYTHONDIR'] = str(runtime / 'ipython')
 os.environ['MPLCONFIGDIR'] = str(runtime / 'matplotlib')
 
 if args.mode in ['all', 'scripts']:
-    for script in sorted((ROOT / 'scripts').glob('part_*.py')):
+    scripts = sorted((ROOT / 'scripts').glob('part_*.py'))
+    if args.part:
+        scripts = [scripts[args.part-1]]
+    for script in scripts:
         print('Running script:', script.name, flush=True)
         environment = os.environ.copy()
         environment['MPLBACKEND'] = 'Agg'
@@ -38,8 +42,11 @@ class ProjectKernelSpecManager(KernelSpecManager):
         spec.metadata['supported_encryption'] = ['curve']
         return spec
 
-for name in ['01_data_preparation.ipynb', '02_feature_engineering.ipynb',
-             '03_volatility_forecasting.ipynb', '04_var_backtesting.ipynb', '05_results_and_discussion.ipynb']:
+notebook_names = ['01_data_preparation.ipynb', '02_feature_engineering.ipynb',
+                  '03_volatility_forecasting.ipynb', '04_var_backtesting.ipynb', '05_results_and_discussion.ipynb']
+if args.part:
+    notebook_names = [notebook_names[args.part-1]]
+for name in notebook_names:
     path = ROOT / 'notebooks' / name
     notebook = nbformat.read(path, as_version=4)
     client = NotebookClient(notebook, timeout=300, kernel_name='python3',
@@ -48,6 +55,7 @@ for name in ['01_data_preparation.ipynb', '02_feature_engineering.ipynb',
     client.create_kernel_manager()
     client.km.kernel_spec_manager = ProjectKernelSpecManager()
     client.km.transport_encryption = 'required'
+    client.on_cell_executed = lambda **kwargs: nbformat.write(notebook, path)
     try:
         client.execute()
     finally:
@@ -57,7 +65,11 @@ for name in ['01_data_preparation.ipynb', '02_feature_engineering.ipynb',
 if args.mode == 'all':
     for name, digest in script_hashes.items():
         assert hashlib.sha256((ROOT/name).read_bytes()).hexdigest() == digest, f'Script/notebook CSV mismatch: {name}'
-    (ROOT/'outputs/tables/execution_parity.json').write_text(json.dumps({
-        'all_five_scripts_executed': True, 'all_five_notebooks_executed': True,
+    parity_path = ROOT/'outputs/tables/execution_parity.json'
+    if args.part:
+        parity_path = ROOT/f'outputs/checkpoints/part_{args.part}_parity.json'
+        parity_path.parent.mkdir(parents=True, exist_ok=True)
+    parity_path.write_text(json.dumps({
+        'all_five_scripts_executed': args.part is None, 'all_five_notebooks_executed': args.part is None,
         'csv_files_byte_identical': len(script_hashes), 'csv_sha256': script_hashes}, indent=2))
     print('All scripts and notebooks produced byte-identical CSVs.', flush=True)

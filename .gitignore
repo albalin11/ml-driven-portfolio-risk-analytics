@@ -47,6 +47,7 @@ dist/
 # Local audit backups and Jupyter connection files
 backups/
 outputs/jupyter_runtime/
+outputs/checkpoints/
 
 # Local tools, credentials, reproduction environments and personal planning image
 .tools/

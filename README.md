@@ -209,7 +209,7 @@ On macOS/Linux, use `python3.14 -m venv .venv` and replace the interpreter path 
 Existing verified snapshots are reused. Run from the project root; notebooks also resolve
 the root when opened from `notebooks/`.
 
-The default runner executes all five scripts and then all five notebooks in fresh kernels,
+The full rerun command executes all five scripts and then all five notebooks in fresh kernels,
 saves outputs, and checks CSV equality between the two forms. Optional `--mode scripts`
 or `--mode notebooks` runs one form. You can also execute each `scripts/part_*.py` in numeric
 order from the root. To update notebook code after editing scripts:
@@ -225,6 +225,32 @@ The pinned snapshot checks preserve Part 1/2 bytes. Validation includes the orig
 tests cover portfolio formulas, purged splits, EWMA recursion, VaR signs/units, numerical
 ES integration, non-overlap and Kupiec boundary cases. Five notebooks have real outputs.
 Detailed forecasts and the fitted model are saved locally and excluded from Git.
+
+## Stage checkpoints and local commits
+
+For ongoing development, use `python src/run_stages.py` with the project environment.
+Each stage runs its full script and executed notebook, checks formulas and the applicable
+unit tests, verifies CSV parity, and saves all generated artifacts before the next stage.
+Notebook outputs are also written after each executed cell and on failure.
+
+Before a rerun, existing stage artifacts are copied into ignored local backups. Successful
+checkpoints in `outputs/checkpoints/` record file/input hashes and the local commit ID.
+A restart verifies those hashes and Git ancestry; changed or failed stages are rerun, while
+unchanged successful stages are reused. `--from-part 3`, for example, forces stages 3--5.
+For an already completed and committed full run, `--adopt-existing` validates its artifacts
+and records the existing commits without retraining or manufacturing duplicate commits.
+
+Each changed stage is committed locally with an English `Part N: ...` message after its
+checks pass. An explicit public-file list and ignore/credential checks exclude private data,
+models, caches and backups. Unrelated staged changes stop automatic commits. Logs and
+failure records remain available for diagnosis; the next stage never runs after a failure.
+Shared tooling changes are committed separately from research stages. Final audit reports
+may receive a separate validation commit when they change.
+
+The checkpoint runner never pushes. After all five stages and final validation pass,
+review `git status` and the local commits, then publish once with `git push origin main`.
+The earlier five-part research result is already covered by commit `a2d325e`; it does not
+need five replacement commits.
 
 ## Research presentation
 
