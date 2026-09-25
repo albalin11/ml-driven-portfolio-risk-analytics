@@ -1,0 +1,26 @@
+{
+  "primary_metric": "validation RMSE",
+  "selected_ml_model": "Linear Regression",
+  "selected_candidate": "linear",
+  "overall_validation_winner": "Linear Regression",
+  "validation_start": "2018-01-01",
+  "test_start": "2022-01-01",
+  "seed": 42,
+  "feature_columns": [
+    "return_1d",
+    "return_5d",
+    "return_20d",
+    "volatility_5d",
+    "volatility_20d",
+    "volatility_60d",
+    "drawdown",
+    "correlation_to_spy_20d",
+    "momentum_60d",
+    "momentum_120d"
+  ],
+  "target": "future_5d_realised_volatility",
+  "ewma_lambda": 0.94,
+  "historical_window": 20,
+  "volatility_floor": 1e-08,
+  "raw_snapshot_sha256": "2147948f0a09ac2fdc366ff2e0929eaedb821e3fbbbd14442e3e29828dc24eec"
+}

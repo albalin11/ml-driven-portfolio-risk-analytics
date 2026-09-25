@@ -1,0 +1,14 @@
+{
+  "selected_ml_model": "Linear Regression",
+  "test_rmse": 0.0527136935723629,
+  "test_mae": 0.0363408768443019,
+  "best_baseline": "EWMA",
+  "relative_rmse_percent": -7.781387050742882,
+  "main_backtest_windows": 235,
+  "figures": [
+    "asset_portfolio_volatility.png",
+    "model_errors.png",
+    "test_volatility_forecasts.png",
+    "var_violations.png"
+  ]
+}

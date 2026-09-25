@@ -1,0 +1,44 @@
+{
+  "raw_adjusted_prices": {
+    "rows": 4201,
+    "columns": 7,
+    "start_date": "2010-01-04",
+    "end_date": "2026-09-16",
+    "missing_values": 0,
+    "duplicate_dates": 0,
+    "infinite_values": 0,
+    "chronological": true,
+    "non_positive_values": 0
+  },
+  "cleaned_prices": {
+    "rows": 4201,
+    "columns": 7,
+    "start_date": "2010-01-04",
+    "end_date": "2026-09-16",
+    "missing_values": 0,
+    "duplicate_dates": 0,
+    "infinite_values": 0,
+    "chronological": true,
+    "non_positive_values": 0
+  },
+  "daily_returns": {
+    "rows": 4200,
+    "columns": 7,
+    "start_date": "2010-01-05",
+    "end_date": "2026-09-16",
+    "missing_values": 0,
+    "duplicate_dates": 0,
+    "infinite_values": 0,
+    "chronological": true,
+    "zero_returns": 206,
+    "negative_returns": 13475
+  },
+  "removed_price_rows": 0,
+  "expected_initial_return_nans": 7,
+  "raw_snapshot_sha256": "2147948f0a09ac2fdc366ff2e0929eaedb821e3fbbbd14442e3e29828dc24eec",
+  "cutoff": "2026-09-16",
+  "processed_sha256": {
+    "clean_adjusted_close_prices.csv": "1b228982042735fb0e29a088fb752201eae1d3a70010e80929b8b5a44ff22f6f",
+    "daily_returns.csv": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4"
+  }
+}

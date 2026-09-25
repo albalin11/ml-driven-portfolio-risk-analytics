@@ -1,0 +1,33 @@
+{
+  "rows": 28532,
+  "columns": 13,
+  "start_date": "2010-06-25",
+  "end_date": "2026-09-09",
+  "rows_before": 29407,
+  "rows_removed": 875,
+  "feature_warmup_rows": 840,
+  "target_unavailable_rows": 42,
+  "missing_before": {
+    "return_1d": 7,
+    "return_5d": 35,
+    "return_20d": 140,
+    "volatility_5d": 35,
+    "volatility_20d": 140,
+    "volatility_60d": 420,
+    "drawdown": 0,
+    "correlation_to_spy_20d": 120,
+    "momentum_60d": 420,
+    "momentum_120d": 840,
+    "future_5d_realised_volatility": 42
+  },
+  "missing_after": 0,
+  "infinite_values": 0,
+  "duplicate_date_asset": 0,
+  "all_targets_verified": true,
+  "prefix_invariance_checks": 3,
+  "input_sha256": {
+    "clean_adjusted_close_prices.csv": "1b228982042735fb0e29a088fb752201eae1d3a70010e80929b8b5a44ff22f6f",
+    "daily_returns.csv": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4"
+  },
+  "dataset_sha256": "664e9a8b606f3b2833f1cefe1176eaf9f9daec7c45902c8d063c8c583bc9ad30"
+}

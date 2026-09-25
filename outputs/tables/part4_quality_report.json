@@ -1,0 +1,13 @@
+{
+  "aligned_forecasts": 1175,
+  "nonoverlapping_windows": 235,
+  "main_test_anchor": "2022-01-03",
+  "outcome_windows_disjoint": true,
+  "confidence_and_sign_checks": true,
+  "all_future_returns_checked": true,
+  "independent_kupiec_checks": 6,
+  "kupiec_edge_cases": 2,
+  "mean_assumption": 0,
+  "horizon_sessions": 5,
+  "annualization": 252
+}

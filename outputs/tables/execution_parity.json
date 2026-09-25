@@ -1,0 +1,25 @@
+{
+  "all_five_scripts_executed": true,
+  "all_five_notebooks_executed": true,
+  "csv_files_byte_identical": 18,
+  "csv_sha256": {
+    "data/processed/clean_adjusted_close_prices.csv": "1b228982042735fb0e29a088fb752201eae1d3a70010e80929b8b5a44ff22f6f",
+    "data/processed/daily_returns.csv": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4",
+    "data/processed/portfolio_daily_returns.csv": "8e8d084743954e52c3e3eac6d7d8e549e2527a3559ea350f72e0ae8ca721d5f5",
+    "data/processed/portfolio_modeling_dataset.csv": "733fb968be510c3a308fb34cf2f09c44f580da564c3418c72a309980dcb80152",
+    "data/processed/volatility_modeling_dataset.csv": "664e9a8b606f3b2833f1cefe1176eaf9f9daec7c45902c8d063c8c583bc9ad30",
+    "outputs/tables/asset_portfolio_overview.csv": "4fa44b3b599401d2e8601c40b2702167ec56eab6b805a951159331c4c9dc2a98",
+    "outputs/tables/kupiec_backtests.csv": "dae241a3500db62702cb1a70749be9c1cbc6e7fa2e8fc2599f422832b850d9c3",
+    "outputs/tables/model_comparison.csv": "18979e642592c7793757d572cfe69d752d13355469b7a67d5dee38e72695bd75",
+    "outputs/tables/nonoverlapping_risk_forecasts.csv": "937459a13f480c47b068a83e55df641af6a9fa9ee017eaaf37e1fa9d0b0bcb66",
+    "outputs/tables/overlapping_violation_summary.csv": "5704296180aace569d85ffe7fde11d1927ccac424bd7489b0a4f8825da68bde8",
+    "outputs/tables/part1_asset_audit.csv": "73a8b53312fa1bb8149f3967f49515f5f8c281edd8931ef15ff682658a534ccb",
+    "outputs/tables/part1_missing_observations.csv": "cdee27b17a458374edf586fb4d7f3fd6782ae5da6508b08b7b4fe89549954ed8",
+    "outputs/tables/risk_forecasts.csv": "9bc4cbd329d67afe387bc9ec9bf8bafd9fc98526a246eacf17e6de71a90ca2ea",
+    "outputs/tables/test_metrics.csv": "9ee805d147e10e47e994655c78fa9b8f94aeca012c4c8f86541c91dfb985c7d6",
+    "outputs/tables/test_predictions.csv": "eed104a5f6cba664c1c002871446e8ccd4f96888352f46fe6dd5ef2dc028affb",
+    "outputs/tables/time_splits.csv": "061919ea2db9b4958486915f4c47755fc587f5d452eb23c45c0320546a0de7da",
+    "outputs/tables/validation_candidates.csv": "625f6c8ace08854778c39165aec71e695a83c37a5173958f6acbc71e8424c883",
+    "outputs/tables/validation_metrics.csv": "c5ac6c3b514f3bc1110b4d681437e499adfd2c79d90a18c047b44574e2cf6656"
+  }
+}

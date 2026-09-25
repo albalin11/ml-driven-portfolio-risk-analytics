@@ -1,0 +1,54 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Data files (keep raw/project data local unless explicitly tracked)
+data/raw/*
+data/processed/*
+
+# Keep observation-level research outputs local; publish aggregate results and figures
+outputs/models/
+outputs/tables/test_predictions.csv
+outputs/tables/risk_forecasts.csv
+outputs/tables/nonoverlapping_risk_forecasts.csv
+outputs/tables/before_after_comparison.json
+outputs/tables/validation_update_baseline.json
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# Local notebooks output cache
+*.nbconvert.ipynb
+
+# Local audit backups and Jupyter connection files
+backups/
+outputs/jupyter_runtime/
+
+# Local tools, credentials, reproduction environments and personal planning image
+.tools/
+.venv_repro/
+python_project_timeline.jpg
