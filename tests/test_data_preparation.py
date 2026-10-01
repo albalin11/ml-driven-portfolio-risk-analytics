@@ -1,7 +1,6 @@
 """Part 1 checks against the retained raw snapshot and deliberately damaged copies."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import ast
 import unittest
 import shutil
 import subprocess
@@ -9,19 +8,12 @@ import sys
 import nbformat
 import numpy as np
 import pandas as pd
-import exchange_calendars as xcals
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ['SPY', 'QQQ', 'IWM', 'TLT', 'HYG', 'GLD', 'DBC']
 
-# Load only the pure checks; importing the script would also write processed data.
-tree = ast.parse((ROOT/'scripts/part_01_data_preparation.py').read_text(encoding='utf-8'))
-checks = [node for node in tree.body if isinstance(node, ast.FunctionDef)
-          and node.name in ['check_trading_dates', 'check_raw_bars']]
-scope = dict(pd=pd, np=np, xcals=xcals)
-exec(compile(ast.Module(body=checks, type_ignores=[]), 'part1_checks', 'exec'), scope)
-check_dates = scope['check_trading_dates']
-check_bars = scope['check_raw_bars']
+sys.path.insert(0, str(ROOT/'src'))
+from data_preparation_checks import check_trading_dates as check_dates, check_raw_bars as check_bars
 
 
 class DataPreparationTests(unittest.TestCase):

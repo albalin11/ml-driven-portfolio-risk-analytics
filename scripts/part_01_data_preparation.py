@@ -19,64 +19,8 @@ import hashlib
 import json
 import numpy as np
 import pandas as pd
-import exchange_calendars as xcals
+import sys
 
-
-def check_trading_dates(dates, start, end):
-    """Require every expected US equity session, including both sample boundaries."""
-    dates = pd.DatetimeIndex(dates)
-    if dates.hasnans or dates.tz is not None or not dates.equals(dates.normalize()):
-        raise ValueError('Expected timezone-naive daily session labels without NaT or intraday times.')
-    if not dates.is_unique or not dates.is_monotonic_increasing:
-        raise ValueError('Dates must be unique and chronological.')
-    start, end = pd.Timestamp(start), pd.Timestamp(end)
-    # Padding lets the requested boundary itself be a holiday or weekend.
-    calendar = xcals.get_calendar('XNYS', start=start-pd.Timedelta(days=7), end=end+pd.Timedelta(days=7))
-    expected = calendar.sessions_in_range(start, end).tz_localize(None)
-    missing = expected.difference(dates)
-    unexpected = dates.difference(expected)
-    if len(missing) or len(unexpected):
-        raise ValueError(f'Missing trading sessions ({len(missing)}): {missing.strftime("%Y-%m-%d").tolist()}; '
-                         f'unexpected dates ({len(unexpected)}): {unexpected.strftime("%Y-%m-%d").tolist()}')
-    days = pd.date_range(start, end)
-    weekends = days[days.dayofweek >= 5]
-    regular = calendar.regular_holidays.holidays(start, end)
-    special = pd.DatetimeIndex(calendar.adhoc_holidays)
-    special = special[(special >= start) & (special <= end)]
-    closed_weekdays = days.difference(weekends).difference(expected)
-    unexplained = closed_weekdays.difference(regular).difference(special)
-    if len(unexplained):
-        raise ValueError(f'Calendar closure classification needs review: {unexplained.tolist()}')
-    return dict(calendar='XNYS', package_version=xcals.__version__, expected_sessions=len(expected),
-                expected_first=str(expected[0].date()), expected_last=str(expected[-1].date()),
-                weekend_dates=len(weekends), regular_holiday_dates=len(closed_weekdays.intersection(regular)),
-                special_closures=special.strftime('%Y-%m-%d').tolist(), missing_sessions=0, unexpected_dates=0)
-
-
-def check_raw_bars(raw, tickers):
-    """Check comparable OHLC fields together; Adj Close has a different adjustment basis."""
-    fields = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
-    if not isinstance(raw.columns, pd.MultiIndex) or not raw.columns.is_unique:
-        raise ValueError('Expected unique (field, asset) raw columns.')
-    summary = {}
-    for asset in tickers:
-        missing_columns = [field for field in fields if (field, asset) not in raw.columns]
-        if missing_columns:
-            raise ValueError(f'{asset}: missing raw fields {missing_columns}')
-        bars = raw.xs(asset, axis=1, level=1)[fields]
-        if not np.isfinite(bars.to_numpy(dtype=float)).all():
-            raise ValueError(f'{asset}: missing or non-finite OHLCV/Adj Close; missing counts {bars.isna().sum().to_dict()}')
-        if (bars[fields[:-1]] <= 0).any().any() or (bars.Volume < 0).any():
-            raise ValueError(f'{asset}: non-positive price or negative volume.')
-        tolerance = bars.Close * 1e-8
-        invalid_range = ((bars.Low > bars[['Open', 'Close', 'High']].min(axis=1) + tolerance)
-                         | (bars.High < bars[['Open', 'Close', 'Low']].max(axis=1) - tolerance))
-        if invalid_range.any():
-            raise ValueError(f'{asset}: inconsistent OHLC range on {bars.index[invalid_range].strftime("%Y-%m-%d").tolist()}')
-        summary[asset] = dict(missing_values=0, non_finite_values=0, non_positive_prices=0,
-                              invalid_ohlc_rows=0, negative_volume_rows=0,
-                              zero_volume_rows=int(bars.Volume.eq(0).sum()))
-    return summary
 
 def find_project_root():
     for candidate in (Path.cwd().resolve(), *Path.cwd().resolve().parents):
@@ -85,6 +29,9 @@ def find_project_root():
     raise RuntimeError('Start Jupyter inside the project root or one of its subdirectories.')
 
 PROJECT_ROOT = find_project_root()
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
+from data_preparation_checks import check_trading_dates, check_raw_bars
+
 PROCESSED_DIR = PROJECT_ROOT / 'data' / 'processed'
 RAW_DIR = PROJECT_ROOT / 'data' / 'raw'
 REPORT_DIR = PROJECT_ROOT / 'outputs' / 'tables'
@@ -110,7 +57,8 @@ yf.set_tz_cache_location(str(RAW_DIR / 'yfinance_cache'))
 # ## 1. Download or Load the Immutable Raw Snapshot
 
 # %%
-if SNAPSHOT_PATH.exists():
+snapshot_exists = SNAPSHOT_PATH.exists()
+if snapshot_exists:
     metadata = json.loads(METADATA_PATH.read_text())
     assert hashlib.sha256(SNAPSHOT_PATH.read_bytes()).hexdigest() == metadata['sha256']
     assert metadata['tickers'] == TICKERS and metadata['end_exclusive'] == END_DATE_EXCLUSIVE
@@ -124,8 +72,11 @@ else:
     assert 'Adj Close' in raw_data.columns.get_level_values(0)
     assert set(TICKERS).issubset(raw_data['Adj Close'].columns)
     assert raw_data['Adj Close'][TICKERS].notna().any().all(), 'An asset download failed.'
-    check_trading_dates(raw_data.index, START_DATE, DATA_CUTOFF)
-    check_raw_bars(raw_data, TICKERS)
+
+# Validate either source once, before a new snapshot can be saved.
+calendar_audit = check_trading_dates(raw_data.index, START_DATE, DATA_CUTOFF)
+raw_bar_audit = check_raw_bars(raw_data, TICKERS)
+if not snapshot_exists:
     raw_data.to_csv(SNAPSHOT_PATH, index_label='Date')
     metadata = dict(source='Yahoo Finance via yfinance', downloaded_at_utc=datetime.now(timezone.utc).isoformat(),
                     start=START_DATE, cutoff_inclusive=DATA_CUTOFF, end_exclusive=END_DATE_EXCLUSIVE,
@@ -134,8 +85,6 @@ else:
                     sha256=hashlib.sha256(SNAPSHOT_PATH.read_bytes()).hexdigest())
     METADATA_PATH.write_text(json.dumps(metadata, indent=2))
 
-calendar_audit = check_trading_dates(raw_data.index, START_DATE, DATA_CUTOFF)
-raw_bar_audit = check_raw_bars(raw_data, TICKERS)
 print('Trading-calendar check:', calendar_audit)
 print('Raw OHLCV and Adj Close checks passed for all seven ETFs.')
 prices = raw_data['Adj Close'].reindex(columns=TICKERS).copy()
@@ -147,18 +96,17 @@ assert prices.index.max() <= pd.Timestamp(DATA_CUTOFF)
 print('Raw adjusted-price shape:', prices.shape)
 
 # %% [markdown]
-# ## 2. Audit Missing Values and Select Common Observed Dates
+# ## 2. Retain Complete, Validated Prices
 #
 # XNYS from exchange_calendars is the US cash-equity session reference for these US-listed ETFs,
 # including the bond and commodity ETFs (not their underlying bond/futures calendars).
 # Weekends, regular holidays and special closures are separated; early-close sessions remain required.
-# Both raw dates and cleaned dates must cover the full requested session range.
+# Raw dates must cover the full requested session range; the price table retains these dates.
 # Sources: [calendar rules](https://github.com/gerrymanoim/exchange_calendars/blob/master/exchange_calendars/exchange_calendar_xnys.py)
 # and [NYSE calendar](https://www.nyse.com/trade/hours-calendars).
 #
 # Missing/non-finite raw fields or invalid prices stop execution for investigation. No price is
-# filled or fabricated. The original common-date selection is retained, with a calendar check
-# afterwards so dropping a required date can never create a disguised multi-session daily return.
+# filled, fabricated or dropped. Complete Adj Close prices pass through unchanged.
 
 # %%
 def audit_frame(frame, *, is_returns=False):
@@ -180,31 +128,17 @@ asset_audit = pd.DataFrame({
     'end_date': prices.apply(lambda s: s.last_valid_index()),
     'observed_prices': prices.count(), 'missing_before': prices.isna().sum()
 })
-missing_records = []
-for asset in TICKERS:
-    first, last = prices[asset].first_valid_index(), prices[asset].last_valid_index()
-    for date in prices.index[prices[asset].isna()]:
-        reason = 'outside_asset_coverage' if date < first or date > last else 'internal_gap_cause_unconfirmed'
-        missing_records.append(dict(Date=date, asset=asset, reason=reason))
-missing_audit = pd.DataFrame(missing_records, columns=['Date', 'asset', 'reason'])
+# Keep the existing report format; a successful raw check guarantees no missing observations.
+missing_audit = pd.DataFrame(columns=['Date', 'asset', 'reason'])
 missing_audit.to_csv(REPORT_DIR / 'part1_missing_observations.csv', index=False)
-assert before['duplicate_dates'] == 0, 'Duplicate dates require investigation.'
-assert before['non_positive_values'] == 0 and before['infinite_values'] == 0
-prices = prices.sort_index()
-clean_prices = prices.dropna(how='any').copy()
-assert not clean_prices.empty
-check_trading_dates(clean_prices.index, START_DATE, DATA_CUTOFF)
-removed_dates = prices.index.difference(clean_prices.index)
-internal_removed = removed_dates[(removed_dates >= clean_prices.index.min()) & (removed_dates <= clean_prices.index.max())]
-assert len(internal_removed) == 0, 'Investigate missing internal sessions before calculating daily returns.'
+clean_prices = prices.copy()
 asset_audit['missing_after'] = clean_prices.isna().sum()
 asset_audit.to_csv(REPORT_DIR / 'part1_asset_audit.csv', index_label='asset')
 display(asset_audit)
 display(missing_audit)
 print('Before cleaning:', before)
 print('After cleaning:', audit_frame(clean_prices))
-print('Removed dates:', removed_dates.strftime('%Y-%m-%d').tolist())
-print('Missing-price diagnosis:', 'No missing adjusted-price cells in this snapshot.' if not missing_records else 'See missing observation report; causes are not assumed.')
+print('All validated prices retained; no missing values filled or dates removed.')
 
 # %% [markdown]
 # ## Adjustment diagnostics

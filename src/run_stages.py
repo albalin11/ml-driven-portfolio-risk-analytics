@@ -55,7 +55,8 @@ def git(*args):
 
 def stage_files(part):
     script, notebook = NAMES[part-1]
-    return [f'scripts/{script}', f'notebooks/{notebook}', *OUTPUTS[part]]
+    helpers = ['src/data_preparation_checks.py'] if part == 1 else []
+    return [f'scripts/{script}', f'notebooks/{notebook}', *helpers, *OUTPUTS[part]]
 
 def file_hashes(names):
     return {name: hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in names}
