@@ -21,6 +21,151 @@
     "chronological": true,
     "non_positive_values": 0
   },
+  "calendar_audit": {
+    "calendar": "XNYS",
+    "package_version": "4.13.2",
+    "expected_sessions": 4201,
+    "expected_first": "2010-01-04",
+    "expected_last": "2026-09-16",
+    "weekend_dates": 1744,
+    "regular_holiday_dates": 154,
+    "special_closures": [
+      "2012-10-29",
+      "2012-10-30",
+      "2018-12-05",
+      "2025-01-09"
+    ],
+    "missing_sessions": 0,
+    "unexpected_dates": 0
+  },
+  "raw_bar_audit": {
+    "SPY": {
+      "missing_values": 0,
+      "non_finite_values": 0,
+      "non_positive_prices": 0,
+      "invalid_ohlc_rows": 0,
+      "negative_volume_rows": 0,
+      "zero_volume_rows": 0
+    },
+    "QQQ": {
+      "missing_values": 0,
+      "non_finite_values": 0,
+      "non_positive_prices": 0,
+      "invalid_ohlc_rows": 0,
+      "negative_volume_rows": 0,
+      "zero_volume_rows": 0
+    },
+    "IWM": {
+      "missing_values": 0,
+      "non_finite_values": 0,
+      "non_positive_prices": 0,
+      "invalid_ohlc_rows": 0,
+      "negative_volume_rows": 0,
+      "zero_volume_rows": 0
+    },
+    "TLT": {
+      "missing_values": 0,
+      "non_finite_values": 0,
+      "non_positive_prices": 0,
+      "invalid_ohlc_rows": 0,
+      "negative_volume_rows": 0,
+      "zero_volume_rows": 0
+    },
+    "HYG": {
+      "missing_values": 0,
+      "non_finite_values": 0,
+      "non_positive_prices": 0,
+      "invalid_ohlc_rows": 0,
+      "negative_volume_rows": 0,
+      "zero_volume_rows": 0
+    },
+    "GLD": {
+      "missing_values": 0,
+      "non_finite_values": 0,
+      "non_positive_prices": 0,
+      "invalid_ohlc_rows": 0,
+      "negative_volume_rows": 0,
+      "zero_volume_rows": 0
+    },
+    "DBC": {
+      "missing_values": 0,
+      "non_finite_values": 0,
+      "non_positive_prices": 0,
+      "invalid_ohlc_rows": 0,
+      "negative_volume_rows": 0,
+      "zero_volume_rows": 0
+    }
+  },
+  "adjustment_factor_summary": {
+    "SPY": {
+      "min_adj_close_to_close": 0.7444537496396969,
+      "max_adj_close_to_close": 0.9975229873506252,
+      "largest_absolute_factor_change": 0.007092666136396808
+    },
+    "QQQ": {
+      "min_adj_close_to_close": 0.8670084551861534,
+      "max_adj_close_to_close": 1.0,
+      "largest_absolute_factor_change": 0.00556969029799026
+    },
+    "IWM": {
+      "min_adj_close_to_close": 0.7988619978828904,
+      "max_adj_close_to_close": 1.0,
+      "largest_absolute_factor_change": 0.008661476477656915
+    },
+    "TLT": {
+      "min_adj_close_to_close": 0.6131923534066297,
+      "max_adj_close_to_close": 1.0,
+      "largest_absolute_factor_change": 0.004278971951683808
+    },
+    "HYG": {
+      "min_adj_close_to_close": 0.382786307011468,
+      "max_adj_close_to_close": 1.0,
+      "largest_absolute_factor_change": 0.00774753651245752
+    },
+    "GLD": {
+      "min_adj_close_to_close": 1.0,
+      "max_adj_close_to_close": 1.0,
+      "largest_absolute_factor_change": 0.0
+    },
+    "DBC": {
+      "min_adj_close_to_close": 0.8454374295063561,
+      "max_adj_close_to_close": 1.0,
+      "largest_absolute_factor_change": 0.053386882580436446
+    }
+  },
+  "adjustment_review_threshold": 0.01,
+  "adjustment_events": [
+    {
+      "Date": "2018-12-24",
+      "asset": "DBC",
+      "factor_change": 0.012988777953172326,
+      "assessment": "Adjustment-factor change; possible distribution or provider revision. Retained."
+    },
+    {
+      "Date": "2019-12-23",
+      "asset": "DBC",
+      "factor_change": 0.01601925950254901,
+      "assessment": "Adjustment-factor change; possible distribution or provider revision. Retained."
+    },
+    {
+      "Date": "2023-12-18",
+      "asset": "DBC",
+      "factor_change": 0.04914037618143818,
+      "assessment": "Adjustment-factor change; possible distribution or provider revision. Retained."
+    },
+    {
+      "Date": "2024-12-23",
+      "asset": "DBC",
+      "factor_change": 0.053386882580436446,
+      "assessment": "Adjustment-factor change; possible distribution or provider revision. Retained."
+    },
+    {
+      "Date": "2025-12-22",
+      "asset": "DBC",
+      "factor_change": 0.03365599615044501,
+      "assessment": "Adjustment-factor change; possible distribution or provider revision. Retained."
+    }
+  ],
   "daily_returns": {
     "rows": 4200,
     "columns": 7,

@@ -38,7 +38,7 @@ OUTPUTS = {
         'outputs/figures/asset_portfolio_volatility.png', 'outputs/figures/model_errors.png', 'README.md'],
 }
 TESTS = {
-    1: [],  # All price/return quality and arithmetic assertions run in Part 1 itself.
+    1: ['test_data_preparation'],
     2: ['test_validation.SavedResultTests.test_original_part2_contract'],
     3: ['test_validation.FormulaTests.test_portfolio_features_independent_arithmetic',
         'test_validation.FormulaTests.test_future_perturbation_cannot_change_past_features',
@@ -69,7 +69,7 @@ def save_state(part, state):
 
 def input_hashes(part):
     # Changes to upstream data, formulas, tests or environment invalidate later checkpoints.
-    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_checkpoints.py', 'tests/reference_snapshot.json',
+    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_checkpoints.py', 'tests/test_data_preparation.py', 'tests/reference_snapshot.json',
              'src/run_stages.py', 'src/run_pipeline.py', 'src/sync_notebooks.py', 'src/update_readme.py', 'src/verify_pipeline.py']
     for earlier in range(1, part):
         names += stage_files(earlier)

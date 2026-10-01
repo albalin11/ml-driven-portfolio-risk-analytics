@@ -72,9 +72,14 @@ Part 1 audits duplicate dates, missing observations, positive finite prices and 
 order. It selects common observed price dates without forward fill. In this snapshot there
 are no missing prices and no removed price rows. Returns use price[t]/price[t-1]-1; only
 the initial undefined row is removed. Negative and zero returns are valid observations.
-Internal missing sessions stop execution for investigation rather than silently producing
-a multi-session return labelled as daily. Dates absent from every provider series are not
-independently checked against an exchange calendar.
+Raw and cleaned dates must match the XNYS US equity sessions from exchange_calendars
+4.13.2, including the expected start/end and early-close sessions. Weekends, regular
+holidays and special closures are separated; any missing or unexpected session stops
+execution. OHLC ranges, positive finite prices and nonnegative volume are checked.
+Daily changes of at least 1% in Adj Close / Close are recorded for review, not removed.
+The 2010 start and 2026-09-16 cutoff are project choices. Raw OHLCV is retained for auditing;
+Adj Close is used for returns so distributions are not confused with investment losses.
+The script is authoritative; the runner rejects a Part 1 notebook that has drifted from it.
 
 Part 2 preserves ten features: 1/5/20-day returns, 5/20/60-day historical sample volatility,
 expanding-peak drawdown, trailing 20-day correlation to SPY, and 60/120-day momentum.

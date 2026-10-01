@@ -9,12 +9,18 @@ import json
 import nbformat
 from nbclient import NotebookClient
 from jupyter_client.kernelspec import KernelSpecManager
+from sync_notebooks import script_cells
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--mode', choices=['all', 'scripts', 'notebooks'], default='all')
 parser.add_argument('--part', type=int, choices=range(1, 6), help='Run only this stage; used by run_stages.py.')
 args = parser.parse_args()
+if args.part in [None, 1]:
+    part1_notebook = nbformat.read(ROOT/'notebooks/01_data_preparation.ipynb', as_version=4)
+    part1_cells = script_cells(ROOT/'scripts/part_01_data_preparation.py')
+    assert [(c.cell_type, c.source) for c in part1_notebook.cells] == [(c.cell_type, c.source) for c in part1_cells], \
+        'Part 1 notebook differs from its script. Run src/sync_notebooks.py before execution.'
 runtime = ROOT / 'outputs' / 'jupyter_runtime'
 runtime.mkdir(parents=True, exist_ok=True)
 os.environ['JUPYTER_RUNTIME_DIR'] = str(runtime)
