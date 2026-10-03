@@ -43,7 +43,7 @@ class FeatureEngineeringTests(unittest.TestCase):
                 'volatility_5d': np.std(portfolio[position - 4:position + 1], ddof=1) * np.sqrt(252),
                 'volatility_20d': np.std(portfolio[position - 19:position + 1], ddof=1) * np.sqrt(252),
                 'volatility_60d': np.std(portfolio[position - 59:position + 1], ddof=1) * np.sqrt(252),
-                'drawdown': wealth[position] / wealth[:position + 1].max() - 1,
+                'drawdown': wealth[position] / max(1.0, wealth[:position + 1].max()) - 1,
             }
             correlations = np.corrcoef(
                 self.returns.iloc[position - 19:position + 1], rowvar=False
@@ -90,7 +90,8 @@ class FeatureEngineeringTests(unittest.TestCase):
                 expected = np.std(portfolio[position - window + 1:position + 1], ddof=1) * np.sqrt(252)
                 self.assertAlmostEqual(row[f'volatility_{window}d'], expected, places=12)
             self.assertAlmostEqual(
-                row['drawdown'], wealth[position] / wealth[:position + 1].max() - 1, places=12
+                row['drawdown'], wealth[position] / max(1.0, wealth[:position + 1].max()) - 1,
+                places=12,
             )
             matrix = np.corrcoef(self.returns.iloc[position - 19:position + 1], rowvar=False)
             self.assertAlmostEqual(
