@@ -1,16 +1,28 @@
 # ML-Driven Portfolio Risk Analytics
 
-## Overview and research question
+## Research question
 
-Can machine learning improve forecasts of an equal-weight ETF portfolio's next-five-day
-realised volatility, and do those forecasts produce well-calibrated five-day risk limits?
-This project compares transparent baselines with three supervised models, then evaluates
-95% and 99% Value at Risk (VaR) using held-out portfolio returns. It is an empirical risk
-analysis, not a trading system or evidence of investment profitability.
+Can simple machine-learning models improve forecasts of an equal-weight ETF portfolio's
+next-five-trading-day realised volatility? Do those forecasts produce well-calibrated
+five-day Value at Risk (VaR) limits on a held-out test period?
 
-## Data and the seven ETFs
+**Main result:** Linear Regression was selected on validation and recorded test MAE
+**0.035502** and RMSE **0.052967**, the lowest errors
+among the three final test models.
 
-| ETF | Exposure |
+![Held-out volatility forecasts](outputs/figures/test_volatility_forecasts.png)
+
+## Data and portfolio
+
+The project uses Yahoo Finance adjusted close prices for seven ETFs on the XNYS calendar.
+The fixed sample contains **4,201 price dates** from
+**2010-01-04 to 2026-09-16** and
+**4,200 daily return dates**. Part 1 found no missing expected
+sessions or cross-asset price gaps. Raw and observation-level data remain local because
+market-data redistribution rights are separate from the yfinance software license; see
+[data provenance](data/README.md).
+
+| ETF | Main exposure |
 | --- | --- |
 | SPY | US large-cap equities |
 | QQQ | Nasdaq-100 equities |
@@ -20,109 +32,36 @@ analysis, not a trading system or evidence of investment profitability.
 | GLD | Gold |
 | DBC | Broad commodities |
 
-Yahoo Finance adjusted close prices are obtained through yfinance. The fixed inclusive
-cutoff is **2026-09-16**. The retained vintage contains **4,201 price dates** from
-2010-01-04, and **4,200 daily return dates** from 2010-01-05, for all seven assets.
-Prices account for provider adjustments such as splits and distributions.
+The portfolio keeps a constant **1/7 weight** in each ETF. Its daily return is the mean of
+the seven ETF returns, so portfolio volatility includes cross-asset co-movement.
 
-The portfolio is rebalanced daily to 1/7 per ETF, so each daily portfolio return is the
-mean of the seven asset returns. Portfolio volatility is calculated from this return
-series and includes the effect of cross-asset co-movement; it is not average asset volatility.
-Transaction costs, spreads, taxes and liquidity constraints are omitted.
+## Features and target
 
-Raw and observation-level datasets remain local. The repository contains research
-summaries, charts and a download workflow, not a redistributed market-data database.
-See [data provenance and usage](data/README.md). Exact reproduction requires the same
-raw snapshot and package versions; a fresh download may reflect historical revisions.
-The recorded reference hashes are in [tests/reference_snapshot.json](tests/reference_snapshot.json).
+Part 2 creates eight backward-looking features: `return_1d`, `return_5d`, `return_20d`, `volatility_5d`, `volatility_20d`, `volatility_60d`, `drawdown`, `average_correlation_20d`. The target at date `t` is
+the annualised sample standard deviation of portfolio returns from `t+1` through `t+5`.
+The final modeling data contain **4,136 rows** from
+**2010-03-31 to 2026-09-09**, with no missing or non-finite
+values. No future information enters the features. Independent formulas, full target
+alignment and prefix-invariance checks passed.
 
-## Project structure
+## Forecasting models and time split
 
-```text
-scripts/
-    part_01_data_preparation.py
-    part_02_feature_engineering.py
-    part_03_volatility_forecasting.py
-    part_04_var_backtesting.py
-    part_05_results_and_figures.py
-notebooks/
-    01_data_preparation.ipynb
-    02_feature_engineering.ipynb
-    03_volatility_forecasting.ipynb
-    04_var_backtesting.ipynb
-    05_results_and_discussion.ipynb
-src/               # Execution, notebook synchronization and verification helpers
-tests/             # Independent formula and saved-result checks
-data/raw/          # Local downloaded snapshot and provenance metadata
-data/processed/    # Local prices, returns, ETF and portfolio modeling datasets
-outputs/tables/    # Aggregate reports; detailed forecasts also saved locally
-outputs/figures/   # Four published research figures
-outputs/models/    # Local fitted model, reproducible from Part 3
-```
+The two baselines are trailing 20-day Historical Volatility and EWMA with lambda 0.94.
+The ML models are Linear Regression, Random Forest and XGBoost. Validation MAE is the
+primary selection metric and RMSE is secondary. The chronological split is never shuffled;
+five boundary observations are purged before validation and test so target windows do not
+cross split boundaries. Scaling and model fitting use only eligible earlier observations.
 
-The five scripts contain the full stage code. Their `# %%` sections are copied into
-the corresponding notebooks by `src/sync_notebooks.py`; the notebooks contain actual
-executed code, explanations, tables and figures. Edit a script and resynchronize instead
-of maintaining separate formulas. Earlier project files are retained in ignored local
-backups. No Git history was replaced.
+| Split | Dates | Rows |
+| --- | --- | --- |
+| train | 2010-03-31 to 2017-12-21 | 1948 |
+| validation | 2018-01-02 to 2021-12-23 | 1003 |
+| test | 2022-01-03 to 2026-09-09 | 1175 |
 
-## Data preparation and feature engineering
+## Forecast results
 
-Part 1 loads or downloads seven ETFs and checks that every expected XNYS trading session
-has a positive, finite Adj Close for each asset. Missing dates or prices stop execution;
-no prices are filled and no trading dates are dropped. The calendar includes holidays,
-special closures and early-close sessions. Existing ordinary OHLCV fields receive basic
-consistency checks, without comparing their ranges to Adj Close. The start date and cutoff
-are project choices.
-Returns use Adj Close to account for provider split and distribution adjustments:
-`return[t] = price[t] / price[t-1] - 1`. Only the first undefined return is removed;
-zero and negative returns are valid. Prices and returns are saved as separate CSVs.
-A compact quality report records dimensions, date ranges and hashes used by later stages.
-The raw snapshot is hash-checked and never overwritten. The notebook follows the script;
-shared checks live in `src/data_preparation_checks.py`.
-
-Part 2 forms a constant-weight portfolio by averaging the seven daily ETF returns. It keeps
-eight features: compounded 1/5/20-day returns, 5/20/60-day historical sample volatility,
-expanding-peak drawdown, and the trailing 20-day mean of the 21 distinct ETF correlations.
-All volatility uses `ddof=1` and annualization by `sqrt(252)`. The target on date t is
-`std(r[t+1], ..., r[t+5], ddof=1) * sqrt(252)` and excludes the return on t.
-Features are available after the close of t. The first 59 dates needed by the 60-day window
-and the final five target dates are removed only after all columns have been calculated.
-
-The Part 2 modeling dataset has **4,136 rows x 10 columns**, **2010-03-31 to 2026-09-09**:
-Date, eight features and one target. Independent formulas, all target windows and three
-prefix-invariance dates are checked before the dataset is saved.
-
-## Volatility forecasting
-
-- **Historical Volatility:** trailing 20-day sample standard deviation, annualized.
-- **EWMA:** `v[t] = 0.94*v[t-1] + 0.06*r[t]^2`, initialized with the first squared return;
-  forecast `sqrt(252*v[t])` after observing t. This is a zero-mean second-moment baseline.
-- **Linear Regression:** standardized features followed by an ordinary linear fit.
-- **Random Forest:** 200 trees, depth 3 or 6, minimum leaf size 10.
-- **XGBoost:** 200 trees, depth 2 or 3, learning rate 0.03, row subsampling 0.8.
-
-Tree candidates and random seed 42 are fixed in the code. A fixed floor of 1e-8 enforces
-nonnegative forecasts. Validation **MAE** is the primary selection metric and RMSE is the
-secondary metric. No test-driven tuning is performed.
-
-| Split | Rows | First forecast | Last forecast | Last outcome date |
-| --- | --- | --- | --- | --- |
-| train | 1948 | 2010-03-31 | 2017-12-21 | 2017-12-29 |
-| validation | 1003 | 2018-01-02 | 2021-12-23 | 2021-12-31 |
-| test | 1175 | 2022-01-03 | 2026-09-09 | 2026-09-16 |
-
-Ten boundary rows are purged: no training target reaches validation and no validation
-target reaches test. This is one chronological holdout, not k-fold cross-validation.
-Scalers fit only on the corresponding fitting sample. After validation selection, the
-chosen ML specification is refitted once on all eligible pre-2022 labels and frozen.
-Only the chosen ML model and the two baselines are evaluated on test. Daily baseline
-updates use newly observed past returns and require no future outcomes.
-
-## Results
-
-All errors below are annualized volatility decimals (0.01 means one volatility percentage
-point). Unselected ML models are deliberately not scored on test.
+Errors are annualised volatility decimals. Random Forest and XGBoost were not evaluated on
+test because the test set was not used for model selection.
 
 | Model | Validation MAE | Validation RMSE | Test MAE | Test RMSE |
 | --- | --- | --- | --- | --- |
@@ -132,139 +71,93 @@ point). Unselected ML models are deliberately not scored on test.
 | Historical Volatility | 0.041307 | 0.063688 | 0.040831 | 0.060382 |
 | EWMA | 0.041399 | 0.061941 | 0.039416 | 0.057162 |
 
-**Linear Regression** was selected on validation. Its test RMSE is
-**7.34% lower**
-than EWMA, the stronger test baseline. This is a descriptive error
-comparison; no statistical significance or trading advantage is claimed.
+**Linear Regression** was selected on validation. Its test RMSE was
+**7.34% lower** than
+EWMA, the lower-RMSE baseline. This point comparison does not establish
+statistical superiority or trading profitability.
 
-![Held-out volatility forecasts](outputs/figures/test_volatility_forecasts.png)
+![Model forecast errors](outputs/figures/model_errors.png)
 
-## VaR and backtesting methodology
+## Five-day VaR backtesting
 
-The main horizon is five trading sessions. Assuming zero conditional mean, conditionally
-independent normal daily returns and constant forecast variance over the horizon:
+Part 4 uses the saved annualised test volatility forecasts and zero expected return:
 
 ```text
-sigma_5d = predicted_annualized_volatility * sqrt(5/252)
+sigma_5d = sigma_annual * sqrt(5 / 252)
 VaR_loss(95%) = 1.645 * sigma_5d
 VaR_loss(99%) = 2.326 * sigma_5d
-return_threshold = -VaR_loss
-violation = actual_compounded_5d_return < return_threshold
+violation = actual future 5-day compounded return < -VaR_loss
 ```
 
-Actual outcomes compound the next five daily portfolio returns exactly. Normal risk limits
-use the arithmetic-sum approximation to compounded returns, which is a model limitation.
-VaR is a positive loss fraction, not a currency amount.
+Actual outcomes compound the five portfolio returns after each forecast date. Formal
+Kupiec unconditional coverage tests use every fifth forecast from the first test date,
+giving **235 non-overlapping windows** per model and confidence level.
 
-The main Kupiec unconditional coverage test takes every fifth forecast from the first test
-date, yielding **235 disjoint five-session outcome windows**. The anchor is fixed before
-observing violations. Overlapping daily counts are also saved, but receive no naive Kupiec
-p-value. The formal results are in
-[the full table](outputs/tables/kupiec_backtests.csv).
+| Model | Confidence | Windows | Violations | Rate | Expected | Kupiec LR | p-value |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Historical Volatility | 95.00% | 235 | 10 | 4.26% | 5.00% | 0.2883 | 0.5913 |
+| Historical Volatility | 99.00% | 235 | 3 | 1.28% | 1.00% | 0.1670 | 0.6828 |
+| EWMA | 95.00% | 235 | 8 | 3.40% | 5.00% | 1.4121 | 0.2347 |
+| EWMA | 99.00% | 235 | 1 | 0.43% | 1.00% | 0.9990 | 0.3176 |
+| Linear Regression | 95.00% | 235 | 15 | 6.38% | 5.00% | 0.8735 | 0.3500 |
+| Linear Regression | 99.00% | 235 | 4 | 1.70% | 1.00% | 0.9668 | 0.3255 |
 
-| Model | Confidence | Windows | Violations | Rate | Kupiec LR | p-value |
-| --- | --- | --- | --- | --- | --- | --- |
-| Historical Volatility | 95.00% | 235 | 10 | 4.26% | 0.2883 | 0.5913 |
-| Historical Volatility | 99.00% | 235 | 3 | 1.28% | 0.1670 | 0.6828 |
-| EWMA | 95.00% | 235 | 8 | 3.40% | 1.4121 | 0.2347 |
-| EWMA | 99.00% | 235 | 1 | 0.43% | 0.9990 | 0.3176 |
-| Linear Regression | 95.00% | 235 | 15 | 6.38% | 0.8735 | 0.3500 |
-| Linear Regression | 99.00% | 235 | 4 | 1.70% | 0.9668 | 0.3255 |
-
-None of these six unconditional coverage tests rejects at 5%. This does not prove correct
-calibration: at 99% confidence, only 2.35 violations are expected in 235 windows. Low power,
-remaining dependence and multiple comparisons limit interpretation. The selected linear
-model has lower volatility RMSE yet a higher observed violation rate than both baselines.
-Lower forecast error and better tail calibration should not be treated as the same result.
+None of the six Kupiec tests rejects the expected violation rate at 5%. This does not prove
+correct calibration: only 2.35 violations are expected at 99%, and the test checks frequency
+rather than independence. Linear Regression has the lowest test forecast error but the
+highest observed VaR violation rate, so point accuracy and tail calibration differ.
 
 ![Five-day VaR violations](outputs/figures/var_violations.png)
 
-## Key findings and limitations
+## Findings
 
-- The linear model improved held-out point forecast errors in this experiment; tree models
-  did not win the prespecified validation comparison.
-- Five returns give a noisy target. Model rankings are conditional on one historical split.
-- Normal tails, zero drift and square-root-of-time scaling are restrictive assumptions.
-  No conditional coverage test is claimed.
-- Non-overlap removes shared returns, not all market dependence. The small 99% tail sample
-  does not establish that a model is safe or correctly calibrated.
-- Adjusted data may be revised; the seven selected ETFs and a single period limit generalization.
-- No transaction costs, portfolio optimization or trading profitability are modeled.
+- Linear Regression had the lowest validation MAE and the lowest test MAE and RMSE.
+- Both tree models ranked behind Linear Regression on the fixed validation period.
+- All six non-overlapping Kupiec p-values exceeded 0.05, with limited power at 99%.
+- Lower volatility forecast error did not imply fewer VaR violations.
 
-Potential extensions include purged expanding-window evaluation, Student-t or filtered
-historical risk estimates, conditional coverage tests, and rebalancing costs.
-These are future work, not implemented results.
+## Limitations
 
-## Installation and execution
+- Five daily returns make the realised-volatility target noisy.
+- One chronological split and one test period cannot establish a stable model ranking.
+- Normal VaR, zero expected return and square-root-of-time scaling are restrictive.
+- The Kupiec test checks unconditional frequency; 235 windows give little 99% tail evidence.
+- Daily rebalancing ignores costs and liquidity, and seven ETFs limit generalisation.
 
-Tested with **Python 3.14** on Windows; important dependencies are pinned in `requirements.txt`.
-From a clean checkout, create the environment and run these PowerShell commands:
+## Project structure
 
-```powershell
-py -3.14 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe src/run_pipeline.py
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-.\.venv\Scripts\python.exe src/verify_pipeline.py
+```text
+scripts/       # Five complete analysis stages
+notebooks/     # Matching notebooks with saved execution output
+src/           # Small execution and validation helpers
+tests/         # Formula, leakage, alignment and saved-result checks
+data/          # Provenance note; raw and processed observations stay local
+outputs/       # Public aggregate tables and figures; detailed rows stay local
 ```
 
-On macOS/Linux, use `python3.14 -m venv .venv` and replace the interpreter path with
-`.venv/bin/python`. Network access is required for packages and the initial Yahoo download.
-Existing verified snapshots are reused. Run from the project root; notebooks also resolve
-the root when opened from `notebooks/`.
+## Reproduce the analysis
 
-The full rerun command executes all five scripts and then all five notebooks in fresh kernels,
-saves outputs, and checks CSV equality between the two forms. Optional `--mode scripts`
-or `--mode notebooks` runs one form. You can also execute each `scripts/part_*.py` in numeric
-order from the root. To update notebook code after editing scripts:
+The project was tested with Python 3.14. In a virtual environment, run from the project root:
 
-```powershell
-.\.venv\Scripts\python.exe src/sync_notebooks.py
-.\.venv\Scripts\python.exe src/run_pipeline.py
-.\.venv\Scripts\python.exe src/update_readme.py
+```bash
+python -m pip install -r requirements.txt
+python src/run_pipeline.py
+python src/update_readme.py
+python -m unittest discover -s tests -v
+python src/verify_pipeline.py
 ```
 
-The pinned snapshot checks preserve Part 1/2 bytes. Validation includes the original
-147 independent feature checks, prefix-invariance and all-row target alignment; additional
-tests cover portfolio formulas, purged splits, EWMA recursion, VaR signs/units, numerical
-return alignment, non-overlap and Kupiec boundary cases. Five notebooks have real outputs.
-Detailed forecasts and the fitted model are saved locally and excluded from Git.
+The first run needs network access if no local raw snapshot exists. A fresh Yahoo download
+may include provider revisions, so exact published numbers require the recorded local data
+vintage.
 
-## Stage checkpoints and local commits
-
-For ongoing development, use `python src/run_stages.py` with the project environment.
-Each stage runs its full script and executed notebook, checks formulas and the applicable
-unit tests, verifies CSV parity, and saves all generated artifacts before the next stage.
-Notebook outputs are also written after each executed cell and on failure.
-
-Before a rerun, existing stage artifacts are copied into ignored local backups. Successful
-checkpoints in `outputs/checkpoints/` record file/input hashes and the local commit ID.
-A restart verifies those hashes and Git ancestry; changed or failed stages are rerun, while
-unchanged successful stages are reused. `--from-part 3`, for example, forces stages 3--5.
-For an already completed and committed full run, `--adopt-existing` validates its artifacts
-and records the existing commits without retraining or manufacturing duplicate commits.
-
-Each changed stage is committed locally with an English `Part N: ...` message after its
-checks pass. An explicit public-file list and ignore/credential checks exclude private data,
-models, caches and backups. Unrelated staged changes stop automatic commits. Logs and
-failure records remain available for diagnosis; the next stage never runs after a failure.
-Shared tooling changes are committed separately from research stages. Final audit reports
-may receive a separate validation commit when they change.
-
-The checkpoint runner never pushes. After all five stages and final validation pass,
-review `git status` and the local commits, then publish once with `git push origin main`.
-The earlier five-part research result is already covered by commit `a2d325e`; it does not
-need five replacement commits.
-
-## Research presentation
-
-A concise CV description supported by this run: "Built a reproducible seven-ETF portfolio
-risk study comparing five volatility forecasting methods, with purged chronological
-validation and five-day VaR backtesting on 235 non-overlapping test windows."
+The five scripts are the authoritative implementation. `src/run_pipeline.py` runs all five
+scripts and all five notebooks, preserves notebook output, and checks that both paths save
+byte-identical CSV files. Aggregate results are under `outputs/tables`; core figures are
+under `outputs/figures`.
 
 ## References
 
-- [yfinance documentation](https://ranaroussi.github.io/yfinance/) and [data-use notes](https://github.com/ranaroussi/yfinance#readme).
-- [RiskMetrics Technical Document (1996)](https://www.msci.com/www/research-report/1996-riskmetrics-technical/018482266).
-- [Kupiec proportion-of-failures test and formula](https://www.mathworks.com/help/risk/risk.validation.proportionoffailurestest.html).
-- [scikit-learn StandardScaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html).
+- [yfinance documentation and data-use note](https://github.com/ranaroussi/yfinance#readme)
+- [RiskMetrics Technical Document (1996)](https://www.msci.com/www/research-report/1996-riskmetrics-technical/018482266)
+- [Kupiec proportion-of-failures test](https://www.mathworks.com/help/risk/risk.validation.proportionoffailurestest.html)

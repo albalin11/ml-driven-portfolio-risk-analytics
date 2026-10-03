@@ -1,10 +1,186 @@
 {
+  "status": "PASS",
+  "data": {
+    "assets": [
+      "SPY",
+      "QQQ",
+      "IWM",
+      "TLT",
+      "HYG",
+      "GLD",
+      "DBC"
+    ],
+    "price_rows": 4201,
+    "return_rows": 4200,
+    "price_start": "2010-01-04",
+    "price_end": "2026-09-16"
+  },
+  "modeling_dataset": {
+    "rows": 4136,
+    "features": [
+      "return_1d",
+      "return_5d",
+      "return_20d",
+      "volatility_5d",
+      "volatility_20d",
+      "volatility_60d",
+      "drawdown",
+      "average_correlation_20d"
+    ],
+    "target": "future_5d_realised_volatility",
+    "start_date": "2010-03-31",
+    "end_date": "2026-09-09"
+  },
+  "time_splits": [
+    {
+      "split": "train",
+      "rows": 1948,
+      "first_date": "2010-03-31",
+      "last_date": "2017-12-21",
+      "first_target_start": "2010-04-01",
+      "last_target_end": "2017-12-29",
+      "purged_before_next_split": 5
+    },
+    {
+      "split": "validation",
+      "rows": 1003,
+      "first_date": "2018-01-02",
+      "last_date": "2021-12-23",
+      "first_target_start": "2018-01-03",
+      "last_target_end": "2021-12-31",
+      "purged_before_next_split": 5
+    },
+    {
+      "split": "test",
+      "rows": 1175,
+      "first_date": "2022-01-03",
+      "last_date": "2026-09-09",
+      "first_target_start": "2022-01-04",
+      "last_target_end": "2026-09-16",
+      "purged_before_next_split": 0
+    }
+  ],
   "selected_ml_model": "Linear Regression",
-  "test_rmse": 0.0527136935723629,
-  "test_mae": 0.0363408768443019,
-  "best_baseline": "EWMA",
-  "relative_rmse_percent": -7.781387050742882,
-  "main_backtest_windows": 235,
+  "validation_metrics": [
+    {
+      "model": "Linear Regression",
+      "candidate": "linear",
+      "MAE": 0.0352458962896559,
+      "RMSE": 0.056722592608189
+    },
+    {
+      "model": "XGBoost",
+      "candidate": "xgb_depth_2",
+      "MAE": 0.0359497406987192,
+      "RMSE": 0.061744883018345
+    },
+    {
+      "model": "Random Forest",
+      "candidate": "rf_depth_3",
+      "MAE": 0.0375284349802952,
+      "RMSE": 0.0647821408131372
+    },
+    {
+      "model": "Historical Volatility",
+      "candidate": "Historical Volatility",
+      "MAE": 0.0413073377961267,
+      "RMSE": 0.0636877013135586
+    },
+    {
+      "model": "EWMA",
+      "candidate": "EWMA",
+      "MAE": 0.041399387113758,
+      "RMSE": 0.0619409075333516
+    }
+  ],
+  "test_metrics": [
+    {
+      "model": "Historical Volatility",
+      "MAE": 0.040831159198897,
+      "RMSE": 0.0603819932647314
+    },
+    {
+      "model": "EWMA",
+      "MAE": 0.0394161524950073,
+      "RMSE": 0.0571616638838066
+    },
+    {
+      "model": "Linear Regression",
+      "MAE": 0.0355021987209933,
+      "RMSE": 0.052967046471455
+    }
+  ],
+  "relative_test_rmse_to_best_baseline_percent": -7.338165349556769,
+  "nonoverlapping_var_backtests": [
+    {
+      "model": "Historical Volatility",
+      "confidence": 0.95,
+      "observations": 235,
+      "violations": 10,
+      "violation_rate": 0.0425531914893617,
+      "expected_violation_rate": 0.05,
+      "kupiec_statistic": 0.2883191495928514,
+      "kupiec_p_value": 0.591299677495556
+    },
+    {
+      "model": "Historical Volatility",
+      "confidence": 0.99,
+      "observations": 235,
+      "violations": 3,
+      "violation_rate": 0.0127659574468085,
+      "expected_violation_rate": 0.01,
+      "kupiec_statistic": 0.1669994893749731,
+      "kupiec_p_value": 0.6827923408410457
+    },
+    {
+      "model": "EWMA",
+      "confidence": 0.95,
+      "observations": 235,
+      "violations": 8,
+      "violation_rate": 0.0340425531914893,
+      "expected_violation_rate": 0.05,
+      "kupiec_statistic": 1.412052984491268,
+      "kupiec_p_value": 0.2347158849289647
+    },
+    {
+      "model": "EWMA",
+      "confidence": 0.99,
+      "observations": 235,
+      "violations": 1,
+      "violation_rate": 0.0042553191489361,
+      "expected_violation_rate": 0.01,
+      "kupiec_statistic": 0.9989878910644148,
+      "kupiec_p_value": 0.3175555325912109
+    },
+    {
+      "model": "Linear Regression",
+      "confidence": 0.95,
+      "observations": 235,
+      "violations": 15,
+      "violation_rate": 0.0638297872340425,
+      "expected_violation_rate": 0.05,
+      "kupiec_statistic": 0.8734525174926517,
+      "kupiec_p_value": 0.3500012757920689
+    },
+    {
+      "model": "Linear Regression",
+      "confidence": 0.99,
+      "observations": 235,
+      "violations": 4,
+      "violation_rate": 0.0170212765957446,
+      "expected_violation_rate": 0.01,
+      "kupiec_statistic": 0.96676215449542,
+      "kupiec_p_value": 0.3254890178524693
+    }
+  ],
+  "upstream_sha256": {
+    "data/processed/daily_returns.csv": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4",
+    "data/processed/volatility_modeling_dataset.csv": "4e130c29c4f8d37092efd432e86fb86e7fbc49821a887c2d34af0871aecf00af",
+    "outputs/tables/validation_metrics.csv": "15bd94fc88c38d39b0832588dfa9bcf37cc18c72313c7512ab621d6447e5c875",
+    "outputs/tables/test_metrics.csv": "42efea51371a0dcbca83de89ad028b5531f4f8edd0a0982430434f2ba875c5c0",
+    "outputs/tables/test_predictions.csv": "6ac8f4cb99e6195d188e902661f7f0826b2346cf52597b54fa1a61a0c5b7aa18",
+    "outputs/tables/kupiec_backtests.csv": "df2a89809ba1ddf3aeb26ef83b231c8da88c78d005835f50f9360b0fb3bbb5a3"
+  },
   "figures": [
     "asset_portfolio_volatility.png",
     "model_errors.png",
