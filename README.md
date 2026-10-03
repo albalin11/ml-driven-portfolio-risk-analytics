@@ -1,4 +1,4 @@
-# ML-Driven Portfolio Risk Analytics
+# Portfolio Risk Forecasting and VaR Backtesting
 
 ## Research question
 
@@ -8,9 +8,7 @@ five-day Value at Risk (VaR) limits on a held-out test period?
 
 **Models:** Historical Volatility, EWMA, Linear Regression, Random Forest and XGBoost.
 
-**Main result:** Linear Regression was selected on validation and recorded test MAE
-**0.035502** and RMSE **0.052967**, the lowest errors
-among the three final test models.
+**Main result:** Linear Regression was selected on validation and achieved lower test MAE and RMSE than the two baseline models evaluated on the held-out test set.
 
 ![Held-out volatility forecasts](outputs/figures/test_volatility_forecasts.png)
 
@@ -20,8 +18,7 @@ The project uses Yahoo Finance adjusted close prices for seven ETFs on the XNYS 
 The fixed sample contains **4,201 price dates** from
 **2010-01-04 to 2026-09-16** and
 **4,200 daily return dates**. Part 1 found no missing expected
-sessions or cross-asset price gaps. Raw and observation-level data remain local because
-market-data redistribution rights are separate from the yfinance software license; see
+sessions or cross-asset price gaps. Raw market data are not included in the repository; the README records the data source and sample period for reproducibility; see
 [data provenance](data/README.md).
 
 | ETF | Main exposure |
@@ -43,16 +40,14 @@ Part 2 creates eight backward-looking features: `return_1d`, `return_5d`, `retur
 the annualised sample standard deviation of portfolio returns from `t+1` through `t+5`.
 The final modeling data contain **4,136 rows** from
 **2010-03-31 to 2026-09-09**, with no missing or non-finite
-values. No future information enters the features. Independent formulas, full target
-alignment and prefix-invariance checks passed.
+values. All features use information available at the forecast date, and additional checks were used to verify target alignment and prevent look-ahead bias.
 
 ## Forecasting models and time split
 
 The two baselines are trailing 20-day Historical Volatility and EWMA with lambda 0.94.
 The ML models are Linear Regression, Random Forest and XGBoost. Validation MAE is the
 primary selection metric and RMSE is secondary. The chronological split is never shuffled;
-five boundary observations are purged before validation and test so target windows do not
-cross split boundaries. Scaling and model fitting use only eligible earlier observations.
+five observations are removed around each split boundary so that the five-day target window cannot extend into the next data set. Scaling and model fitting use only eligible earlier observations.
 
 | Split | Dates | Rows |
 | --- | --- | --- |
@@ -62,8 +57,7 @@ cross split boundaries. Scaling and model fitting use only eligible earlier obse
 
 ## Forecast results
 
-Errors are annualised volatility decimals. Random Forest and XGBoost were not evaluated on
-test because the test set was not used for model selection.
+Only the validation-selected ML model and the two baselines were evaluated on the held-out test set. Random Forest and XGBoost were therefore not evaluated on test.
 
 | Model | Validation MAE | Validation RMSE | Test MAE | Test RMSE |
 | --- | --- | --- | --- | --- |
@@ -75,8 +69,7 @@ test because the test set was not used for model selection.
 
 **Linear Regression** was selected on validation. Its test RMSE was
 **7.34% lower** than
-EWMA, the lower-RMSE baseline. This point comparison does not establish
-statistical superiority or trading profitability.
+EWMA, the lower-RMSE baseline. This difference is descriptive and does not establish statistically significant superiority.
 
 ![Model forecast errors](outputs/figures/model_errors.png)
 
@@ -107,7 +100,7 @@ giving **235 non-overlapping windows** per model and confidence level.
 None of the six Kupiec tests rejects the expected violation rate at 5%. This does not prove
 correct calibration: only 2.35 violations are expected at 99%, and the test checks frequency
 rather than independence. Linear Regression has the lowest test forecast error but the
-highest observed VaR violation rate, so point accuracy and tail calibration differ.
+highest observed VaR violation rate, showing that lower volatility forecast error did not necessarily translate into fewer VaR violations.
 
 ![Five-day VaR violations](outputs/figures/var_violations.png)
 
@@ -124,7 +117,7 @@ highest observed VaR violation rate, so point accuracy and tail calibration diff
 - One chronological split and one test period cannot establish a stable model ranking.
 - Normal VaR, zero expected return and square-root-of-time scaling are restrictive.
 - The Kupiec test checks unconditional frequency; 235 windows give little 99% tail evidence.
-- Daily rebalancing ignores costs and liquidity, and seven ETFs limit generalisation.
+- The equal-weight seven-ETF portfolio is only one portfolio specification, so the results may not generalise to other asset sets or weighting schemes.
 
 ## Project structure
 
@@ -153,9 +146,7 @@ The first run needs network access if no local raw snapshot exists. A fresh Yaho
 may include provider revisions, so exact published numbers require the recorded local data
 vintage.
 
-The five scripts are the authoritative implementation. `src/run_pipeline.py` runs all five
-scripts and all five notebooks, preserves notebook output, and checks that both paths save
-byte-identical CSV files. Aggregate results are under `outputs/tables`; core figures are
+The five scripts are the authoritative implementation. `src/run_pipeline.py` runs the complete five-stage analysis and verifies the saved outputs. Aggregate results are under `outputs/tables`; core figures are
 under `outputs/figures`.
 
 ## References
