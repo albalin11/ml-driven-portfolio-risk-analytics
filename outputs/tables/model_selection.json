@@ -1,8 +1,11 @@
 {
-  "primary_metric": "validation RMSE",
+  "primary_metric": "validation MAE",
+  "secondary_metric": "validation RMSE",
   "selected_ml_model": "Linear Regression",
   "selected_candidate": "linear",
   "overall_validation_winner": "Linear Regression",
+  "selection_data": "validation only",
+  "test_used_for_selection": false,
   "validation_start": "2018-01-01",
   "test_start": "2022-01-01",
   "seed": 42,
@@ -14,13 +17,50 @@
     "volatility_20d",
     "volatility_60d",
     "drawdown",
-    "correlation_to_spy_20d",
-    "momentum_60d",
-    "momentum_120d"
+    "average_correlation_20d"
   ],
   "target": "future_5d_realised_volatility",
   "ewma_lambda": 0.94,
   "historical_window": 20,
   "volatility_floor": 1e-08,
-  "raw_snapshot_sha256": "2147948f0a09ac2fdc366ff2e0929eaedb821e3fbbbd14442e3e29828dc24eec"
+  "candidate_configurations": {
+    "linear": {
+      "model": "Linear Regression"
+    },
+    "rf_depth_3": {
+      "model": "Random Forest",
+      "n_estimators": 200,
+      "max_depth": 3,
+      "min_samples_leaf": 10
+    },
+    "rf_depth_6": {
+      "model": "Random Forest",
+      "n_estimators": 200,
+      "max_depth": 6,
+      "min_samples_leaf": 10
+    },
+    "xgb_depth_2": {
+      "model": "XGBoost",
+      "n_estimators": 200,
+      "max_depth": 2,
+      "learning_rate": 0.03
+    },
+    "xgb_depth_3": {
+      "model": "XGBoost",
+      "n_estimators": 200,
+      "max_depth": 3,
+      "learning_rate": 0.03
+    }
+  },
+  "linear_validation_scaler_mean": [
+    0.0003361452962612404,
+    0.0016895040561393452,
+    0.0066688816858020104,
+    0.07747288234466802,
+    0.08256405239159195,
+    0.08507525149344135,
+    -0.021274493711466797,
+    0.23537193657962108
+  ],
+  "part2_dataset_sha256": "4e130c29c4f8d37092efd432e86fb86e7fbc49821a887c2d34af0871aecf00af"
 }

@@ -1,4 +1,4 @@
-split,rows,first_date,last_date,last_target_end
-train,1888,2010-06-25,2017-12-21,2017-12-29
-validation,1003,2018-01-02,2021-12-23,2021-12-31
-test,1175,2022-01-03,2026-09-09,2026-09-16
+split,rows,first_date,last_date,first_target_start,last_target_end,purged_before_next_split
+train,1948,2010-03-31,2017-12-21,2010-04-01,2017-12-29,5
+validation,1003,2018-01-02,2021-12-23,2018-01-03,2021-12-31,5
+test,1175,2022-01-03,2026-09-09,2022-01-04,2026-09-16,0
