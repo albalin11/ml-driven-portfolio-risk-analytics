@@ -42,10 +42,7 @@ TESTS = {
     1: ['test_data_preparation'],
     2: ['test_feature_engineering'],
     3: ['test_volatility_forecasting'],
-    4: ['test_validation.FormulaTests.test_kupiec_known_counts_and_extremes',
-        'test_validation.FormulaTests.test_kupiec_rejects_empty_sample',
-        'test_validation.SavedResultTests.test_saved_risk_units_signs_and_es_integration',
-        'test_validation.SavedResultTests.test_nonoverlap_and_backtest_counts'],
+    4: ['test_var_backtesting'],
     5: ['test_validation'],
 }
 
@@ -55,7 +52,8 @@ def git(*args):
 def stage_files(part):
     script, notebook = NAMES[part-1]
     helpers = {1: ['src/data_preparation_checks.py'],
-               2: ['src/feature_engineering.py']}.get(part, [])
+               2: ['src/feature_engineering.py'],
+               4: ['src/var_backtesting.py']}.get(part, [])
     return [f'scripts/{script}', f'notebooks/{notebook}', *helpers, *OUTPUTS[part]]
 
 def file_hashes(names):
@@ -71,6 +69,7 @@ def save_state(part, state):
 def input_hashes(part):
     # Changes to upstream data, formulas, tests or environment invalidate later checkpoints.
     names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_volatility_forecasting.py',
+             'tests/test_var_backtesting.py',
              'tests/test_checkpoints.py',
              'tests/test_data_preparation.py', 'tests/test_feature_engineering.py', 'tests/reference_snapshot.json',
              'src/run_stages.py', 'src/run_pipeline.py', 'src/sync_notebooks.py', 'src/update_readme.py', 'src/verify_pipeline.py']

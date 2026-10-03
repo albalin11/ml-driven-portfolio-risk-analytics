@@ -139,29 +139,28 @@ comparison; no statistical significance or trading advantage is claimed.
 
 ![Held-out volatility forecasts](outputs/figures/test_volatility_forecasts.png)
 
-## VaR, ES and backtesting methodology
+## VaR and backtesting methodology
 
 The main horizon is five trading sessions. Assuming zero conditional mean, conditionally
 independent normal daily returns and constant forecast variance over the horizon:
 
 ```text
 sigma_5d = predicted_annualized_volatility * sqrt(5/252)
-VaR_loss(c) = normal_quantile(c) * sigma_5d
-ES_loss(c) = normal_density(normal_quantile(c)) * sigma_5d / (1-c)
+VaR_loss(95%) = 1.645 * sigma_5d
+VaR_loss(99%) = 2.326 * sigma_5d
 return_threshold = -VaR_loss
 violation = actual_compounded_5d_return < return_threshold
 ```
 
 Actual outcomes compound the next five daily portfolio returns exactly. Normal risk limits
 use the arithmetic-sum approximation to compounded returns, which is a model limitation.
-VaR and ES are positive loss fractions, not currency amounts. ES is model-implied and is
-not validated by the Kupiec test.
+VaR is a positive loss fraction, not a currency amount.
 
 The main Kupiec unconditional coverage test takes every fifth forecast from the first test
 date, yielding **235 disjoint five-session outcome windows**. The anchor is fixed before
 observing violations. Overlapping daily counts are also saved, but receive no naive Kupiec
-p-value. Exact binomial p-values and rate confidence intervals supplement the asymptotic
-test in [the full table](outputs/tables/kupiec_backtests.csv).
+p-value. The formal results are in
+[the full table](outputs/tables/kupiec_backtests.csv).
 
 | Model | Confidence | Windows | Violations | Rate | Kupiec LR | p-value |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -169,7 +168,7 @@ test in [the full table](outputs/tables/kupiec_backtests.csv).
 | Historical Volatility | 99.00% | 235 | 3 | 1.28% | 0.1670 | 0.6828 |
 | EWMA | 95.00% | 235 | 8 | 3.40% | 1.4121 | 0.2347 |
 | EWMA | 99.00% | 235 | 1 | 0.43% | 0.9990 | 0.3176 |
-| Linear Regression | 95.00% | 235 | 13 | 5.53% | 0.1355 | 0.7128 |
+| Linear Regression | 95.00% | 235 | 15 | 6.38% | 0.8735 | 0.3500 |
 | Linear Regression | 99.00% | 235 | 4 | 1.70% | 0.9668 | 0.3255 |
 
 None of these six unconditional coverage tests rejects at 5%. This does not prove correct
@@ -186,14 +185,14 @@ Lower forecast error and better tail calibration should not be treated as the sa
   did not win the prespecified validation comparison.
 - Five returns give a noisy target. Model rankings are conditional on one historical split.
 - Normal tails, zero drift and square-root-of-time scaling are restrictive assumptions.
-  No dedicated ES or conditional coverage test is claimed.
+  No conditional coverage test is claimed.
 - Non-overlap removes shared returns, not all market dependence. The small 99% tail sample
   does not establish that a model is safe or correctly calibrated.
 - Adjusted data may be revised; the seven selected ETFs and a single period limit generalization.
 - No transaction costs, portfolio optimization or trading profitability are modeled.
 
 Potential extensions include purged expanding-window evaluation, Student-t or filtered
-historical risk estimates, conditional coverage and ES backtests, and rebalancing costs.
+historical risk estimates, conditional coverage tests, and rebalancing costs.
 These are future work, not implemented results.
 
 ## Installation and execution
@@ -228,7 +227,7 @@ order from the root. To update notebook code after editing scripts:
 The pinned snapshot checks preserve Part 1/2 bytes. Validation includes the original
 147 independent feature checks, prefix-invariance and all-row target alignment; additional
 tests cover portfolio formulas, purged splits, EWMA recursion, VaR signs/units, numerical
-ES integration, non-overlap and Kupiec boundary cases. Five notebooks have real outputs.
+return alignment, non-overlap and Kupiec boundary cases. Five notebooks have real outputs.
 Detailed forecasts and the fitted model are saved locally and excluded from Git.
 
 ## Stage checkpoints and local commits
@@ -261,7 +260,7 @@ need five replacement commits.
 
 A concise CV description supported by this run: "Built a reproducible seven-ETF portfolio
 risk study comparing five volatility forecasting methods, with purged chronological
-validation and five-day VaR/ES backtesting on 235 non-overlapping test windows."
+validation and five-day VaR backtesting on 235 non-overlapping test windows."
 
 ## References
 
