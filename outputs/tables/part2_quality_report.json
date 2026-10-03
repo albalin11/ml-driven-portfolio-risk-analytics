@@ -1,33 +1,93 @@
 {
-  "rows": 28532,
-  "columns": 13,
-  "start_date": "2010-06-25",
-  "end_date": "2026-09-09",
-  "rows_before": 29407,
-  "rows_removed": 875,
-  "feature_warmup_rows": 840,
-  "target_unavailable_rows": 42,
-  "missing_before": {
-    "return_1d": 7,
-    "return_5d": 35,
-    "return_20d": 140,
-    "volatility_5d": 35,
-    "volatility_20d": 140,
-    "volatility_60d": 420,
+  "status": "PASS",
+  "assets": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "TLT",
+    "HYG",
+    "GLD",
+    "DBC"
+  ],
+  "portfolio_weights": {
+    "SPY": 0.14285714285714285,
+    "QQQ": 0.14285714285714285,
+    "IWM": 0.14285714285714285,
+    "TLT": 0.14285714285714285,
+    "HYG": 0.14285714285714285,
+    "GLD": 0.14285714285714285,
+    "DBC": 0.14285714285714285
+  },
+  "input_file": "data/processed/daily_returns.csv",
+  "input_rows": 4200,
+  "input_start_date": "2010-01-05",
+  "input_end_date": "2026-09-16",
+  "portfolio_return_rows": 4200,
+  "final_modeling_rows": 4136,
+  "final_modeling_columns": 10,
+  "final_start_date": "2010-03-31",
+  "final_end_date": "2026-09-09",
+  "feature_list": [
+    "return_1d",
+    "return_5d",
+    "return_20d",
+    "volatility_5d",
+    "volatility_20d",
+    "volatility_60d",
+    "drawdown",
+    "average_correlation_20d"
+  ],
+  "target_name": "future_5d_realised_volatility",
+  "rows_removed_for_natural_nan": 64,
+  "feature_warmup_rows": 59,
+  "future_target_tail_rows": 5,
+  "missing_before_complete_row_filter": {
+    "return_1d": 0,
+    "return_5d": 4,
+    "return_20d": 19,
+    "volatility_5d": 4,
+    "volatility_20d": 19,
+    "volatility_60d": 59,
     "drawdown": 0,
-    "correlation_to_spy_20d": 120,
-    "momentum_60d": 420,
-    "momentum_120d": 840,
-    "future_5d_realised_volatility": 42
+    "average_correlation_20d": 19,
+    "future_5d_realised_volatility": 5
   },
-  "missing_after": 0,
-  "infinite_values": 0,
-  "duplicate_date_asset": 0,
-  "all_targets_verified": true,
-  "prefix_invariance_checks": 3,
-  "input_sha256": {
-    "clean_adjusted_close_prices.csv": "1b228982042735fb0e29a088fb752201eae1d3a70010e80929b8b5a44ff22f6f",
-    "daily_returns.csv": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4"
+  "missing_values_final": 0,
+  "duplicate_dates_final": 0,
+  "non_finite_feature_values": 0,
+  "non_finite_target_values": 0,
+  "independent_formula_validation": {
+    "status": "PASS",
+    "dates": [
+      "2010-03-31",
+      "2020-03-16",
+      "2026-09-09"
+    ],
+    "comparisons": 30
   },
-  "dataset_sha256": "664e9a8b606f3b2833f1cefe1176eaf9f9daec7c45902c8d063c8c583bc9ad30"
+  "target_alignment_validation": {
+    "status": "PASS",
+    "windows_checked": 4195,
+    "first_target_date": "2010-01-05",
+    "last_complete_target_date": "2026-09-09",
+    "unavailable_tail_dates": [
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-14",
+      "2026-09-15",
+      "2026-09-16"
+    ],
+    "window_definition": "t+1 through t+5"
+  },
+  "prefix_invariance_validation": {
+    "status": "PASS",
+    "dates": [
+      "2010-03-31",
+      "2020-03-16",
+      "2026-09-09"
+    ]
+  },
+  "input_sha256": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4",
+  "dataset_sha256": "4e130c29c4f8d37092efd432e86fb86e7fbc49821a887c2d34af0871aecf00af",
+  "feature_summary_sha256": "edde6c770d8a48853f95712dabba4daaaa4ac16f668c411bf899b7735d282f0f"
 }

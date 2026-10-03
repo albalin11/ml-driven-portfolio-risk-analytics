@@ -1,277 +1,237 @@
 # %% [markdown]
 # # Part 2: Feature Engineering
 #
-# This notebook builds a clean, chronological modeling dataset for future volatility forecasting. All features use information available on the current date or earlier. The target uses the next five trading days and is kept separate from the feature calculations.
+# Part 2 turns the seven ETF return series from Part 1 into one constant-weight portfolio.
+# Each ETF has weight 1/7, so the portfolio return is their daily mean. Eight historical
+# features use information available on or before date t. The target uses t+1 through t+5.
 
 # %%
 from pathlib import Path
 from IPython.display import display
 import hashlib
 import json
+import sys
 import numpy as np
 import pandas as pd
 
+
 def find_project_root():
     for candidate in (Path.cwd().resolve(), *Path.cwd().resolve().parents):
-        if (candidate / 'notebooks' / '01_data_preparation.ipynb').is_file() and (candidate / 'src').is_dir():
+        if (candidate / 'notebooks' / '02_feature_engineering.ipynb').is_file() and (candidate / 'src').is_dir():
             return candidate
     raise RuntimeError('Start Jupyter inside the project root or one of its subdirectories.')
 
+
 PROJECT_ROOT = find_project_root()
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
+from feature_engineering import (
+    ASSETS, FEATURE_COLUMNS, TARGET_COLUMN, TRADING_DAYS_PER_YEAR,
+    build_portfolio_features, build_future_volatility_target,
+)
+
 PROCESSED_DIR = PROJECT_ROOT / 'data' / 'processed'
-RAW_DIR = PROJECT_ROOT / 'data' / 'raw'
 REPORT_DIR = PROJECT_ROOT / 'outputs' / 'tables'
-for directory in (PROCESSED_DIR, RAW_DIR, REPORT_DIR):
-    assert directory.resolve().is_relative_to(PROJECT_ROOT)
-    directory.mkdir(parents=True, exist_ok=True)
-print('Project root verified.')
-ASSETS = ['SPY', 'QQQ', 'IWM', 'TLT', 'HYG', 'GLD', 'DBC']
-TRADING_DAYS_PER_YEAR = 252
-VOLATILITY_WINDOWS = [5, 20, 60]
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-prices = pd.read_csv(
-    PROCESSED_DIR / 'clean_adjusted_close_prices.csv',
-    parse_dates=['Date'],
-    index_col='Date'
-)
-returns = pd.read_csv(
-    PROCESSED_DIR / 'daily_returns.csv',
-    parse_dates=['Date'],
-    index_col='Date'
-)
-
-prices = prices[ASSETS]
-returns = returns[ASSETS]
-print(f'Loaded prices: {prices.shape}')
-print(f'Loaded returns: {returns.shape}')
+returns_path = PROCESSED_DIR / 'daily_returns.csv'
 part1_report = json.loads((REPORT_DIR / 'part1_quality_report.json').read_text())
-for name, digest in part1_report['processed_sha256'].items():
-    assert hashlib.sha256((PROCESSED_DIR / name).read_bytes()).hexdigest() == digest
-for frame in (prices, returns):
-    assert list(frame.columns) == ASSETS
-    assert frame.index.is_unique and frame.index.is_monotonic_increasing
-    assert np.isfinite(frame.to_numpy()).all()
-assert (prices > 0).all().all()
-assert returns.index.equals(prices.index[1:])
-np.testing.assert_allclose(returns, prices.pct_change(fill_method=None).iloc[1:], atol=1e-14)
+expected_hash = part1_report['processed_sha256']['daily_returns.csv']
+assert hashlib.sha256(returns_path.read_bytes()).hexdigest() == expected_hash
+
+returns = pd.read_csv(
+    returns_path, parse_dates=['Date'], index_col='Date', float_precision='round_trip'
+)
+if list(returns.columns) != ASSETS:
+    raise ValueError(f'Expected Part 1 return columns in this order: {ASSETS}')
+if not returns.index.is_unique or not returns.index.is_monotonic_increasing:
+    raise ValueError('Part 1 return dates must be unique and chronological.')
+if returns.isna().any().any() or not np.isfinite(returns.to_numpy()).all():
+    raise ValueError('Part 1 returns contain missing or non-finite values.')
+
+print('Loaded verified Part 1 daily returns:', returns.shape)
+print('Input date range:', returns.index[0].date(), 'to', returns.index[-1].date())
 
 # %% [markdown]
-# ## 1. Return, Volatility, and Drawdown Features
+# ## 1. Build the equal-weight portfolio and eight features
 #
-# Return features use `pct_change` over trailing windows. Historical volatility is the rolling sample standard deviation of daily returns, annualized by `sqrt(252)`. Drawdown is the current price relative to the running historical peak for each asset.
+# `return_5d` and `return_20d` compound the last 5 or 20 portfolio returns, including t.
+# Volatility is the trailing sample standard deviation (`ddof=1`) times `sqrt(252)`.
+# Drawdown compares current compounded wealth with its running historical peak.
+# Average correlation is the mean of the 21 distinct ETF pairs over the last 20 days.
 
 # %%
-def build_features(prices, returns):
-    feature_frames = []
+features = build_portfolio_features(returns)
+portfolio_returns = features['return_1d'].copy()
+target = build_future_volatility_target(portfolio_returns)
 
-    for asset in ASSETS:
-        asset_prices = prices[asset]
-        asset_returns = returns[asset]
-        asset_features = pd.DataFrame(index=prices.index)
-        asset_features['Date'] = asset_features.index
-        asset_features['asset'] = asset
+all_columns = FEATURE_COLUMNS + [TARGET_COLUMN]
+modeling_before_drop = features.copy()
+modeling_before_drop[TARGET_COLUMN] = target
+missing_before = modeling_before_drop.isna().sum()
+incomplete_rows = modeling_before_drop[all_columns].isna().any(axis=1)
+modeling_dataset = modeling_before_drop.dropna(subset=all_columns).copy()
+modeling_dataset.index.name = 'Date'
 
-        asset_features['return_1d'] = asset_returns
-        asset_features['return_5d'] = asset_prices.pct_change(5, fill_method=None)
-        asset_features['return_20d'] = asset_prices.pct_change(20, fill_method=None)
-
-        for window in VOLATILITY_WINDOWS:
-            asset_features[f'volatility_{window}d'] = (
-                asset_returns.rolling(window, min_periods=window).std(ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR)
-            )
-
-        running_peak = asset_prices.cummax()
-        asset_features['drawdown'] = asset_prices / running_peak - 1
-
-        spy_returns = returns['SPY']
-        if asset == 'SPY':
-            asset_features['correlation_to_spy_20d'] = 1.0
-        else:
-            asset_features['correlation_to_spy_20d'] = asset_returns.rolling(20).corr(spy_returns)
-
-        asset_features['momentum_60d'] = asset_prices.pct_change(60, fill_method=None)
-        asset_features['momentum_120d'] = asset_prices.pct_change(120, fill_method=None)
-        feature_frames.append(asset_features.reset_index(drop=True))
-
-    features = pd.concat(feature_frames, ignore_index=True)
-    return features
-
-features = build_features(prices, returns)
-print("Feature rows before target construction:", len(features))
-
-# %% [markdown]
-# ## 2. Future 5-Day Realised Volatility Target
-#
-# For date `t`, the target is the sample standard deviation of returns at `t+1` through `t+5`, annualized by `sqrt(252)`. The explicit negative shifts ensure that the current date is excluded and the target is forward-looking.
-
-# %%
-target_frames = []
-for asset in ASSETS:
-    future_returns = pd.concat(
-        [returns[asset].shift(-step) for step in range(1, 6)],
-        axis=1
-    )
-    complete_future_window = future_returns.notna().sum(axis=1).eq(5)
-    future_realised_volatility = (
-        future_returns.std(axis=1, ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR)
-    ).where(complete_future_window)
-    target_frames.append(pd.DataFrame({
-        'Date': returns.index,
-        'asset': asset,
-        'future_5d_realised_volatility': future_realised_volatility.to_numpy()
-    }))
-
-targets = pd.concat(target_frames, ignore_index=True)
-modeling_dataset = features.merge(targets, on=['Date', 'asset'], how='left', validate='one_to_one')
-modeling_dataset = modeling_dataset.sort_values(['Date', 'asset']).reset_index(drop=True)
-
-feature_columns = [
-    'return_1d', 'return_5d', 'return_20d',
-    'volatility_5d', 'volatility_20d', 'volatility_60d',
-    'drawdown', 'correlation_to_spy_20d',
-    'momentum_60d', 'momentum_120d'
-]
-target_column = 'future_5d_realised_volatility'
-assert not np.isinf(modeling_dataset[feature_columns + [target_column]].to_numpy()).any(), 'Investigate infinite values.'
-missing_before = modeling_dataset[feature_columns + [target_column]].isna().sum()
-feature_invalid = modeling_dataset[feature_columns].isna().any(axis=1)
-target_invalid = modeling_dataset[target_column].isna()
-rows_before = len(modeling_dataset)
-print('NaNs before warm-up and target-tail removal:')
+print('Equal-weight portfolio return rows:', len(portfolio_returns))
+print('Natural missing values before complete-window removal:')
 display(missing_before.to_frame('missing_values'))
-print('Feature warm-up rows:', int(feature_invalid.sum()))
-print('Target unavailable rows (including initial price date):', int(target_invalid.sum()))
-modeling_dataset = modeling_dataset.dropna(subset=feature_columns + [target_column]).reset_index(drop=True)
-
-print(f'Modeling dataset shape: {modeling_dataset.shape}')
-print('Feature columns:', list(modeling_dataset.columns))
+print('Complete modeling rows:', len(modeling_dataset))
 
 # %% [markdown]
-# ## 3. Data Quality and Leakage Checks
+# ## 2. Future five-day realised volatility target
 #
-# The checks below verify chronology, uniqueness, missing values, infinite values, feature coverage, and the expected target alignment. No random split or model training is performed in Part 2.
-#
-# Features are available **after the close of date t**. The target excludes t and uses t+1 through t+5. Removing future data is tested at three cutoffs to check feature causality; every retained target is independently checked with NumPy. A later train/validation split must be chronological and purge training labels whose five-day outcome window overlaps validation. No fitted scaler, imputer, or random split is introduced here.
-#
-# Adjusted prices are a downloaded historical snapshot, not a point-in-time vintage database. These tests establish calculation causality, not historical provider revision immunity. Momentum retains the original 60/120-day definitions; SPY correlation to itself is 1.0.
+# On date t, the target is the sample standard deviation of portfolio returns at
+# t+1, t+2, t+3, t+4 and t+5, annualized by `sqrt(252)`. The return on t is excluded.
+# Overlapping target windows are retained because non-overlapping backtests belong to Part 4.
 
 # %%
-expected_columns = ['Date', 'asset'] + feature_columns + [target_column]
-assert list(modeling_dataset.columns) == expected_columns
-assert modeling_dataset['Date'].is_monotonic_increasing
-assert not modeling_dataset.duplicated().any()
-assert not modeling_dataset.duplicated(['Date', 'asset']).any()
-assert not modeling_dataset[feature_columns + [target_column]].isna().any().any()
-assert not np.isinf(modeling_dataset[feature_columns + [target_column]].to_numpy()).any()
-assert set(modeling_dataset['asset']) == set(ASSETS)
-assert modeling_dataset['Date'].max() == returns.index[-6]
+target_dates = returns.index[:-5]
+expected_all_targets = np.array([
+    np.std(portfolio_returns.iloc[position + 1:position + 6], ddof=1)
+    * np.sqrt(TRADING_DAYS_PER_YEAR)
+    for position in range(len(returns) - 5)
+])
+np.testing.assert_allclose(
+    target.loc[target_dates].to_numpy(), expected_all_targets, rtol=1e-12, atol=1e-14
+)
+assert target.loc[target_dates].notna().all()
+assert target.iloc[-5:].isna().all()
+assert target.index[-6] == returns.index[-6]
 
-for asset in ASSETS:
-    asset_rows = modeling_dataset[modeling_dataset['asset'].eq(asset)].set_index('Date')
-    assert np.allclose(asset_rows['return_1d'], returns.loc[asset_rows.index, asset])
-    assert np.allclose(asset_rows['return_5d'], prices[asset].pct_change(5, fill_method=None).loc[asset_rows.index])
-    assert np.allclose(asset_rows['drawdown'], (prices[asset] / prices[asset].cummax() - 1).loc[asset_rows.index])
-
-first_modeling_date = modeling_dataset['Date'].min()
-last_modeling_date = modeling_dataset['Date'].max()
-print('Feature names:', feature_columns)
-print(f'Rows: {len(modeling_dataset):,}')
-print(f'Columns: {len(modeling_dataset.columns)}')
-print(f'Date range: {first_modeling_date.date()} to {last_modeling_date.date()}')
-print('Observations by asset:')
-print(modeling_dataset.groupby('asset').size().to_string())
-print('Missing values:')
-print(modeling_dataset.isna().sum().to_string())
-print('Duplicate rows:', modeling_dataset.duplicated().sum())
-print('Duplicate Date + asset combinations:', modeling_dataset.duplicated(['Date', 'asset']).sum())
-print('Infinite values:', np.isinf(modeling_dataset[feature_columns + [target_column]].to_numpy()).sum())
-print('Chronological order:', modeling_dataset['Date'].is_monotonic_increasing)
-print('Feature formula checks passed.')
-print('Basic descriptive statistics:')
-display(modeling_dataset[feature_columns + [target_column]].describe().T)
-print('Per-asset coverage verified above.')
-# The only row exclusions are the 120-date warm-up and final five dates.
-expected_dates = prices.index[120:-5]
-assert len(modeling_dataset) == len(expected_dates) * len(ASSETS)
-for asset in ASSETS:
-    rows = modeling_dataset.loc[modeling_dataset.asset.eq(asset)].set_index('Date')
-    assert rows.index.equals(expected_dates)
-    # Independent NumPy target verification for every retained date.
-    locations = returns.index.get_indexer(rows.index)
-    values = returns[asset].to_numpy()
-    expected = np.array([np.std(values[i+1:i+6], ddof=1) * np.sqrt(252) for i in locations])
-    np.testing.assert_allclose(rows[target_column], expected, rtol=1e-10, atol=1e-12)
-
-# Independent formula checks on fixed dates for all assets, including SPY itself.
-# Use direct price ratios and NumPy statistics, never build_features().
-formula_check_dates = pd.to_datetime(['2010-06-25', '2020-03-16', '2026-09-09'])
-for asset in ASSETS:
-    asset_rows = modeling_dataset.loc[modeling_dataset.asset.eq(asset)].set_index('Date')
-    for date in formula_check_dates:
-        row = asset_rows.loc[date]
-        price_position = prices.index.get_loc(date)
-        return_position = returns.index.get_loc(date)
-        for feature, lag in [('return_20d', 20), ('momentum_60d', 60), ('momentum_120d', 120)]:
-            expected = prices[asset].iloc[price_position] / prices[asset].iloc[price_position-lag] - 1
-            np.testing.assert_allclose(row[feature], expected, rtol=1e-10, atol=1e-12,
-                                       err_msg=f'{asset} {date.date()} {feature}')
-        for window in [5, 20, 60]:
-            trailing_returns = returns[asset].iloc[return_position-window+1:return_position+1].to_numpy()
-            assert len(trailing_returns) == window
-            expected = np.std(trailing_returns, ddof=1) * np.sqrt(252)
-            np.testing.assert_allclose(row[f'volatility_{window}d'], expected, rtol=1e-10, atol=1e-12,
-                                       err_msg=f'{asset} {date.date()} volatility_{window}d')
-        asset_window = returns[asset].iloc[return_position-19:return_position+1].to_numpy()
-        spy_window = returns['SPY'].iloc[return_position-19:return_position+1].to_numpy()
-        assert len(asset_window) == len(spy_window) == 20
-        expected_correlation = np.corrcoef(asset_window, spy_window)[0, 1]
-        np.testing.assert_allclose(row['correlation_to_spy_20d'], expected_correlation,
-                                   rtol=1e-10, atol=1e-12,
-                                   err_msg=f'{asset} {date.date()} correlation_to_spy_20d')
-print('Independent feature formula checks passed: 7 features x 7 assets x 3 fixed dates = 147 checks.')
-
-# Causality regression: removing all later data cannot change existing features.
-for cutoff in [expected_dates[0], expected_dates[len(expected_dates)//2], expected_dates[-1]]:
-    prefix = build_features(prices.loc[:cutoff], returns.loc[:cutoff])
-    full = features.loc[features.Date.le(cutoff)]
-    pd.testing.assert_frame_equal(prefix.reset_index(drop=True), full.reset_index(drop=True), rtol=1e-10, atol=1e-12)
-print('All-row target alignment and feature prefix-invariance checks passed.')
-
-# %%
-sample_asset = 'SPY'
-sample_date = modeling_dataset.loc[modeling_dataset['asset'].eq(sample_asset), 'Date'].iloc[0]
-sample_target = modeling_dataset.loc[
-    (modeling_dataset['asset'] == sample_asset) & (modeling_dataset['Date'] == sample_date),
-    target_column
-].iloc[0]
-sample_future_returns = returns.loc[returns.index > sample_date, sample_asset].iloc[:5]
-expected_target = sample_future_returns.std(ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR)
-assert np.isclose(sample_target, expected_target)
-assert sample_date < sample_future_returns.index.min()
-assert sample_future_returns.index.max() > sample_date
-print('Target alignment check passed.')
-print('Feature date:', sample_date.date())
-print('Future return dates used by the target:', sample_future_returns.index.strftime('%Y-%m-%d').tolist())
-print(f'Calculated target: {sample_target:.6f}')
-print(f'Independent check: {expected_target:.6f}')
+print('First target date:', target_dates[0].date())
+print('Last complete target date:', target_dates[-1].date())
+print('Unavailable target tail:', target.index[-5:].strftime('%Y-%m-%d').tolist())
 
 # %% [markdown]
-# ## 4. Save the Modeling Dataset
+# ## 3. Independent formula and leakage checks
 #
-# The final dataset is sorted chronologically and saved as one CSV for Part 3.
+# Three fixed dates are checked directly from `daily_returns.csv`, without using the feature
+# builder for the expected values. Prefix checks then confirm that adding future observations
+# cannot change an earlier feature row.
 
 # %%
-modeling_dataset_path = PROCESSED_DIR / 'volatility_modeling_dataset.csv'
-modeling_dataset.to_csv(modeling_dataset_path, index=False)
-print(f'Saved modeling dataset: {modeling_dataset_path.relative_to(PROJECT_ROOT)}')
-print(f'File size: {modeling_dataset_path.stat().st_size:,} bytes')
-report = dict(rows=len(modeling_dataset), columns=len(modeling_dataset.columns),
-              start_date=str(first_modeling_date.date()), end_date=str(last_modeling_date.date()),
-              rows_before=rows_before, rows_removed=rows_before-len(modeling_dataset),
-              feature_warmup_rows=int(feature_invalid.sum()), target_unavailable_rows=int(target_invalid.sum()),
-              missing_before={k:int(v) for k,v in missing_before.items()}, missing_after=int(modeling_dataset.isna().sum().sum()),
-              infinite_values=0, duplicate_date_asset=0, all_targets_verified=True,
-              prefix_invariance_checks=3, input_sha256=part1_report['processed_sha256'],
-              dataset_sha256=hashlib.sha256(modeling_dataset_path.read_bytes()).hexdigest())
+formula_check_dates = pd.to_datetime(['2010-03-31', '2020-03-16', '2026-09-09'])
+portfolio_values = returns.to_numpy().mean(axis=1)
+wealth_values = np.cumprod(1 + portfolio_values)
+independent_comparisons = 0
+
+for date in formula_check_dates:
+    position = returns.index.get_loc(date)
+    row = modeling_dataset.loc[date]
+    expected_portfolio_return = returns.loc[date].to_numpy().mean()
+    np.testing.assert_allclose(portfolio_returns.loc[date], expected_portfolio_return, atol=1e-14)
+    independent_comparisons += 1
+
+    expected_features = {
+        'return_1d': expected_portfolio_return,
+        'return_5d': np.prod(1 + portfolio_values[position - 4:position + 1]) - 1,
+        'return_20d': np.prod(1 + portfolio_values[position - 19:position + 1]) - 1,
+        'volatility_5d': np.std(portfolio_values[position - 4:position + 1], ddof=1) * np.sqrt(252),
+        'volatility_20d': np.std(portfolio_values[position - 19:position + 1], ddof=1) * np.sqrt(252),
+        'volatility_60d': np.std(portfolio_values[position - 59:position + 1], ddof=1) * np.sqrt(252),
+        'drawdown': wealth_values[position] / wealth_values[:position + 1].max() - 1,
+    }
+    correlation_matrix = np.corrcoef(
+        returns.iloc[position - 19:position + 1].to_numpy(), rowvar=False
+    )
+    expected_features['average_correlation_20d'] = correlation_matrix[np.triu_indices(7, 1)].mean()
+
+    for feature_name, expected_value in expected_features.items():
+        np.testing.assert_allclose(
+            row[feature_name], expected_value, rtol=1e-11, atol=1e-13,
+            err_msg=f'{date.date()} {feature_name}',
+        )
+        independent_comparisons += 1
+
+    expected_target = np.std(portfolio_values[position + 1:position + 6], ddof=1) * np.sqrt(252)
+    np.testing.assert_allclose(row[TARGET_COLUMN], expected_target, rtol=1e-11, atol=1e-13)
+    independent_comparisons += 1
+
+prefix_check_dates = formula_check_dates
+for cutoff in prefix_check_dates:
+    prefix_features = build_portfolio_features(returns.loc[:cutoff])
+    pd.testing.assert_series_equal(
+        prefix_features.loc[cutoff], features.loc[cutoff], rtol=1e-12, atol=1e-14
+    )
+
+print(f'Independent formula checks passed: {independent_comparisons} comparisons.')
+print(f'Feature prefix-invariance checks passed: {len(prefix_check_dates)} dates.')
+print(f'All target windows checked: {len(target_dates)}.')
+
+# %% [markdown]
+# ## 4. Validate and save the final dataset
+#
+# Rows are removed only after all eight features and the target have been calculated.
+# The existing filename `volatility_modeling_dataset.csv` is retained for project compatibility.
+
+# %%
+expected_index = returns.index[59:-5]
+assert modeling_dataset.index.equals(expected_index)
+assert list(modeling_dataset.columns) == all_columns
+assert modeling_dataset.index.is_unique and modeling_dataset.index.is_monotonic_increasing
+assert not modeling_dataset.isna().any().any()
+assert np.isfinite(modeling_dataset.to_numpy()).all()
+assert (modeling_dataset[['volatility_5d', 'volatility_20d', 'volatility_60d', TARGET_COLUMN]] >= 0).all().all()
+assert (modeling_dataset['drawdown'] <= 1e-14).all()
+assert modeling_dataset['average_correlation_20d'].between(-1, 1).all()
+
+modeling_path = PROCESSED_DIR / 'volatility_modeling_dataset.csv'
+modeling_dataset.reset_index().to_csv(modeling_path, index=False)
+
+feature_summary = modeling_dataset[FEATURE_COLUMNS].describe().T[
+    ['count', 'mean', 'std', 'min', 'max']
+]
+feature_summary.insert(0, 'feature', feature_summary.index)
+feature_summary['missing_count'] = modeling_dataset[FEATURE_COLUMNS].isna().sum().to_numpy()
+feature_summary.to_csv(REPORT_DIR / 'feature_summary.csv', index=False)
+
+report = {
+    'status': 'PASS',
+    'assets': ASSETS,
+    'portfolio_weights': {asset: 1 / len(ASSETS) for asset in ASSETS},
+    'input_file': 'data/processed/daily_returns.csv',
+    'input_rows': len(returns),
+    'input_start_date': str(returns.index[0].date()),
+    'input_end_date': str(returns.index[-1].date()),
+    'portfolio_return_rows': len(portfolio_returns),
+    'final_modeling_rows': len(modeling_dataset),
+    'final_modeling_columns': len(modeling_dataset.columns) + 1,
+    'final_start_date': str(modeling_dataset.index[0].date()),
+    'final_end_date': str(modeling_dataset.index[-1].date()),
+    'feature_list': FEATURE_COLUMNS,
+    'target_name': TARGET_COLUMN,
+    'rows_removed_for_natural_nan': int(incomplete_rows.sum()),
+    'feature_warmup_rows': 59,
+    'future_target_tail_rows': 5,
+    'missing_before_complete_row_filter': {name: int(value) for name, value in missing_before.items()},
+    'missing_values_final': int(modeling_dataset.isna().sum().sum()),
+    'duplicate_dates_final': int(modeling_dataset.index.duplicated().sum()),
+    'non_finite_feature_values': int((~np.isfinite(modeling_dataset[FEATURE_COLUMNS].to_numpy())).sum()),
+    'non_finite_target_values': int((~np.isfinite(modeling_dataset[TARGET_COLUMN].to_numpy())).sum()),
+    'independent_formula_validation': {
+        'status': 'PASS',
+        'dates': formula_check_dates.strftime('%Y-%m-%d').tolist(),
+        'comparisons': independent_comparisons,
+    },
+    'target_alignment_validation': {
+        'status': 'PASS',
+        'windows_checked': len(target_dates),
+        'first_target_date': str(target_dates[0].date()),
+        'last_complete_target_date': str(target_dates[-1].date()),
+        'unavailable_tail_dates': target.index[-5:].strftime('%Y-%m-%d').tolist(),
+        'window_definition': 't+1 through t+5',
+    },
+    'prefix_invariance_validation': {
+        'status': 'PASS',
+        'dates': prefix_check_dates.strftime('%Y-%m-%d').tolist(),
+    },
+    'input_sha256': expected_hash,
+    'dataset_sha256': hashlib.sha256(modeling_path.read_bytes()).hexdigest(),
+    'feature_summary_sha256': hashlib.sha256((REPORT_DIR / 'feature_summary.csv').read_bytes()).hexdigest(),
+}
 (REPORT_DIR / 'part2_quality_report.json').write_text(json.dumps(report, indent=2))
-print('Part 2 completed successfully using verified Part 1 inputs.')
+
+print('Final modeling dataset:', modeling_dataset.shape)
+print('Date range:', modeling_dataset.index[0].date(), 'to', modeling_dataset.index[-1].date())
+display(feature_summary)
+print('Saved volatility_modeling_dataset.csv, feature_summary.csv and part2_quality_report.json.')
