@@ -34,7 +34,8 @@ def build_portfolio_features(asset_returns):
         )
 
     wealth = (1 + portfolio_returns).cumprod()
-    features['drawdown'] = wealth / wealth.cummax() - 1
+    running_peak = wealth.cummax().clip(lower=1.0)
+    features['drawdown'] = wealth / running_peak - 1
 
     pairwise_correlations = []
     for first_position, first_asset in enumerate(ASSETS):

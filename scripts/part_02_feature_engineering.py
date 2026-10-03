@@ -129,7 +129,7 @@ for date in formula_check_dates:
         'volatility_5d': np.std(portfolio_values[position - 4:position + 1], ddof=1) * np.sqrt(252),
         'volatility_20d': np.std(portfolio_values[position - 19:position + 1], ddof=1) * np.sqrt(252),
         'volatility_60d': np.std(portfolio_values[position - 59:position + 1], ddof=1) * np.sqrt(252),
-        'drawdown': wealth_values[position] / wealth_values[:position + 1].max() - 1,
+        'drawdown': wealth_values[position] / max(1.0, wealth_values[:position + 1].max()) - 1,
     }
     correlation_matrix = np.corrcoef(
         returns.iloc[position - 19:position + 1].to_numpy(), rowvar=False
