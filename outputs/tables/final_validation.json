@@ -8,19 +8,19 @@
       "images": 0
     },
     "02_feature_engineering.ipynb": {
-      "executed_code_cells": 6,
+      "executed_code_cells": 5,
       "errors": 0,
       "warnings": 0,
       "images": 0
     },
     "03_volatility_forecasting.ipynb": {
-      "executed_code_cells": 5,
+      "executed_code_cells": 4,
       "errors": 0,
       "warnings": 0,
       "images": 1
     },
     "04_var_backtesting.ipynb": {
-      "executed_code_cells": 3,
+      "executed_code_cells": 4,
       "errors": 0,
       "warnings": 0,
       "images": 1
