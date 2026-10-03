@@ -1,13 +1,38 @@
 {
-  "aligned_forecasts": 1175,
-  "nonoverlapping_windows": 235,
+  "status": "PASS",
+  "models": [
+    "Historical Volatility",
+    "EWMA",
+    "Linear Regression"
+  ],
+  "confidence_levels": [
+    0.95,
+    0.99
+  ],
+  "z_scores": {
+    "0.95": 1.645,
+    "0.99": 2.326
+  },
+  "expected_violation_rates": {
+    "0.95": 0.05,
+    "0.99": 0.01
+  },
+  "overlapping_observations_per_model_confidence": 1175,
+  "overlapping_risk_rows": 7050,
+  "nonoverlapping_observations_per_model_confidence": 235,
+  "nonoverlapping_risk_rows": 1410,
+  "nonoverlap_selection": "every fifth forecast from the first test forecast",
   "main_test_anchor": "2022-01-03",
   "outcome_windows_disjoint": true,
-  "confidence_and_sign_checks": true,
-  "all_future_returns_checked": true,
-  "independent_kupiec_checks": 6,
-  "kupiec_edge_cases": 2,
+  "all_target_dates_validated": true,
+  "fixed_return_checks": [
+    "2022-01-03",
+    "2024-05-06",
+    "2026-09-09"
+  ],
   "mean_assumption": 0,
-  "horizon_sessions": 5,
-  "annualization": 252
+  "horizon_trading_days": 5,
+  "annualization_days": 252,
+  "part1_daily_returns_sha256": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4",
+  "part3_test_predictions_sha256": "6ac8f4cb99e6195d188e902661f7f0826b2346cf52597b54fa1a61a0c5b7aa18"
 }

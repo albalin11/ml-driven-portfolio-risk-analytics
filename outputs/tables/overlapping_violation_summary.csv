@@ -1,7 +1,7 @@
-model,confidence,observations,violations,violation_rate
-EWMA,0.95,1175,56,0.04765957446808511
-EWMA,0.99,1175,20,0.01702127659574468
-Historical Volatility,0.95,1175,62,0.05276595744680851
-Historical Volatility,0.99,1175,25,0.02127659574468085
-Linear Regression,0.95,1175,76,0.06468085106382979
-Linear Regression,0.99,1175,30,0.02553191489361702
+model,confidence,observations,violations,violation_rate,expected_violation_rate
+Historical Volatility,0.95,1175,62,0.05276595744680851,0.05
+Historical Volatility,0.99,1175,25,0.02127659574468085,0.01
+EWMA,0.95,1175,56,0.04765957446808511,0.05
+EWMA,0.99,1175,20,0.01702127659574468,0.01
+Linear Regression,0.95,1175,93,0.07914893617021276,0.05
+Linear Regression,0.99,1175,38,0.03234042553191489,0.01
