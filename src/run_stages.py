@@ -26,8 +26,8 @@ OUTPUTS = {
         'outputs/tables/part1_quality_report.json'],
     2: ['data/processed/volatility_modeling_dataset.csv', 'outputs/tables/feature_summary.csv',
         'outputs/tables/part2_quality_report.json'],
-    3: ['data/processed/portfolio_daily_returns.csv', 'data/processed/portfolio_modeling_dataset.csv',
-        'outputs/tables/time_splits.csv', 'outputs/tables/validation_candidates.csv', 'outputs/tables/validation_metrics.csv',
+    3: ['outputs/tables/time_splits.csv', 'outputs/tables/validation_candidates.csv',
+        'outputs/tables/validation_metrics.csv', 'outputs/tables/validation_predictions.csv',
         'outputs/tables/model_selection.json', 'outputs/tables/test_metrics.csv', 'outputs/tables/test_predictions.csv',
         'outputs/tables/part3_quality_report.json', 'outputs/models/selected_volatility_model.joblib',
         'outputs/figures/test_volatility_forecasts.png'],
@@ -41,9 +41,7 @@ OUTPUTS = {
 TESTS = {
     1: ['test_data_preparation'],
     2: ['test_feature_engineering'],
-    3: ['test_validation.FormulaTests.test_portfolio_features_independent_arithmetic',
-        'test_validation.FormulaTests.test_future_perturbation_cannot_change_past_features',
-        'test_validation.SavedResultTests.test_split_target_windows', 'test_validation.SavedResultTests.test_test_scores_recomputed'],
+    3: ['test_volatility_forecasting'],
     4: ['test_validation.FormulaTests.test_kupiec_known_counts_and_extremes',
         'test_validation.FormulaTests.test_kupiec_rejects_empty_sample',
         'test_validation.SavedResultTests.test_saved_risk_units_signs_and_es_integration',
@@ -72,7 +70,8 @@ def save_state(part, state):
 
 def input_hashes(part):
     # Changes to upstream data, formulas, tests or environment invalidate later checkpoints.
-    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_checkpoints.py',
+    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_volatility_forecasting.py',
+             'tests/test_checkpoints.py',
              'tests/test_data_preparation.py', 'tests/test_feature_engineering.py', 'tests/reference_snapshot.json',
              'src/run_stages.py', 'src/run_pipeline.py', 'src/sync_notebooks.py', 'src/update_readme.py', 'src/verify_pipeline.py']
     for earlier in range(1, part):
@@ -111,7 +110,8 @@ def verify_stage(part):
         subprocess.run([sys.executable, '-m', 'unittest', *TESTS[part], '-v'], cwd=ROOT/'tests', check=True)
 
 def public_files(part):
-    private = {'outputs/tables/test_predictions.csv', 'outputs/tables/risk_forecasts.csv',
+    private = {'outputs/tables/validation_predictions.csv', 'outputs/tables/test_predictions.csv',
+               'outputs/tables/risk_forecasts.csv',
                'outputs/tables/nonoverlapping_risk_forecasts.csv'}
     return [name for name in stage_files(part)
             if not name.startswith(('data/', 'outputs/models/')) and name not in private]

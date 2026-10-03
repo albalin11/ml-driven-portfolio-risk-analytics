@@ -18,6 +18,7 @@ data/processed/*
 
 # Keep observation-level research outputs local; publish aggregate results and figures
 outputs/models/
+outputs/tables/validation_predictions.csv
 outputs/tables/test_predictions.csv
 outputs/tables/risk_forecasts.csv
 outputs/tables/nonoverlapping_risk_forecasts.csv

@@ -103,12 +103,12 @@ prefix-invariance dates are checked before the dataset is saved.
 - **XGBoost:** 200 trees, depth 2 or 3, learning rate 0.03, row subsampling 0.8.
 
 Tree candidates and random seed 42 are fixed in the code. A fixed floor of 1e-8 enforces
-nonnegative forecasts. Validation **RMSE** is the primary selection metric; MAE is also
-reported. RMSE weights large misses more heavily. No test-driven tuning is performed.
+nonnegative forecasts. Validation **MAE** is the primary selection metric and RMSE is the
+secondary metric. No test-driven tuning is performed.
 
 | Split | Rows | First forecast | Last forecast | Last outcome date |
 | --- | --- | --- | --- | --- |
-| train | 1888 | 2010-06-25 | 2017-12-21 | 2017-12-29 |
+| train | 1948 | 2010-03-31 | 2017-12-21 | 2017-12-29 |
 | validation | 1003 | 2018-01-02 | 2021-12-23 | 2021-12-31 |
 | test | 1175 | 2022-01-03 | 2026-09-09 | 2026-09-16 |
 
@@ -126,14 +126,14 @@ point). Unselected ML models are deliberately not scored on test.
 
 | Model | Validation MAE | Validation RMSE | Test MAE | Test RMSE |
 | --- | --- | --- | --- | --- |
-| Linear Regression | 0.035279 | 0.057393 | 0.036341 | 0.052714 |
-| XGBoost | 0.035301 | 0.060218 | Not evaluated | Not evaluated |
-| EWMA | 0.041399 | 0.061941 | 0.039416 | 0.057162 |
-| Random Forest | 0.036301 | 0.063280 | Not evaluated | Not evaluated |
+| Linear Regression | 0.035246 | 0.056723 | 0.035502 | 0.052967 |
+| XGBoost | 0.035950 | 0.061745 | Not evaluated | Not evaluated |
+| Random Forest | 0.037528 | 0.064782 | Not evaluated | Not evaluated |
 | Historical Volatility | 0.041307 | 0.063688 | 0.040831 | 0.060382 |
+| EWMA | 0.041399 | 0.061941 | 0.039416 | 0.057162 |
 
 **Linear Regression** was selected on validation. Its test RMSE is
-**7.78% lower**
+**7.34% lower**
 than EWMA, the stronger test baseline. This is a descriptive error
 comparison; no statistical significance or trading advantage is claimed.
 

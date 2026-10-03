@@ -12,8 +12,15 @@ def markdown_table(frame):
         lines.append('| ' + ' | '.join(str(value) for value in row) + ' |')
     return '\n'.join(lines)
 
-comparison = pd.read_csv(TABLES/'model_comparison.csv')
-metrics = comparison[['model','MAE_validation','RMSE_validation','MAE_test','RMSE_test']].copy()
+validation = pd.read_csv(TABLES/'validation_metrics.csv').rename(
+    columns={'MAE': 'MAE_validation', 'RMSE': 'RMSE_validation'}
+)
+test = pd.read_csv(TABLES/'test_metrics.csv').rename(
+    columns={'MAE': 'MAE_test', 'RMSE': 'RMSE_test'}
+)
+metrics = validation.merge(test, on='model', how='left')[[
+    'model', 'MAE_validation', 'RMSE_validation', 'MAE_test', 'RMSE_test'
+]]
 for column in metrics.columns[1:]:
     metrics[column] = metrics[column].map(lambda x: f'{x:.6f}' if pd.notna(x) else 'Not evaluated')
 metrics.columns=['Model','Validation MAE','Validation RMSE','Test MAE','Test RMSE']
@@ -25,7 +32,16 @@ for column in ['kupiec_statistic','kupiec_p_value']:
     backtest_view[column]=backtest_view[column].map(lambda x:f'{x:.4f}')
 backtest_view.columns=['Model','Confidence','Windows','Violations','Rate','Kupiec LR','p-value']
 summary=json.loads((TABLES/'results_summary.json').read_text())
-splits=pd.read_csv(TABLES/'time_splits.csv')
+selection=json.loads((TABLES/'model_selection.json').read_text())
+selected_model = selection['selected_ml_model']
+selected_rmse = float(test.loc[test.model == selected_model, 'RMSE_test'].iloc[0])
+baseline_test = test.loc[test.model.isin(['Historical Volatility', 'EWMA'])]
+best_baseline_row = baseline_test.sort_values('RMSE_test').iloc[0]
+best_baseline = best_baseline_row['model']
+relative_rmse_percent = (selected_rmse / best_baseline_row['RMSE_test'] - 1) * 100
+splits=pd.read_csv(TABLES/'time_splits.csv')[[
+    'split', 'rows', 'first_date', 'last_date', 'last_target_end'
+]]
 splits.columns=['Split','Rows','First forecast','Last forecast','Last outcome date']
 text=f'''# ML-Driven Portfolio Risk Analytics
 
@@ -132,8 +148,8 @@ prefix-invariance dates are checked before the dataset is saved.
 - **XGBoost:** 200 trees, depth 2 or 3, learning rate 0.03, row subsampling 0.8.
 
 Tree candidates and random seed 42 are fixed in the code. A fixed floor of 1e-8 enforces
-nonnegative forecasts. Validation **RMSE** is the primary selection metric; MAE is also
-reported. RMSE weights large misses more heavily. No test-driven tuning is performed.
+nonnegative forecasts. Validation **MAE** is the primary selection metric and RMSE is the
+secondary metric. No test-driven tuning is performed.
 
 {markdown_table(splits)}
 
@@ -151,9 +167,9 @@ point). Unselected ML models are deliberately not scored on test.
 
 {markdown_table(metrics)}
 
-**{summary['selected_ml_model']}** was selected on validation. Its test RMSE is
-**{abs(summary['relative_rmse_percent']):.2f}% {'lower' if summary['relative_rmse_percent'] < 0 else 'higher'}**
-than {summary['best_baseline']}, the stronger test baseline. This is a descriptive error
+**{selected_model}** was selected on validation. Its test RMSE is
+**{abs(relative_rmse_percent):.2f}% {'lower' if relative_rmse_percent < 0 else 'higher'}**
+than {best_baseline}, the stronger test baseline. This is a descriptive error
 comparison; no statistical significance or trading advantage is claimed.
 
 ![Held-out volatility forecasts](outputs/figures/test_volatility_forecasts.png)
