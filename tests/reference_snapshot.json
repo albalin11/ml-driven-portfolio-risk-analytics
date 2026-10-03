@@ -1,6 +1,5 @@
 {
   "data/processed/clean_adjusted_close_prices.csv": "1b228982042735fb0e29a088fb752201eae1d3a70010e80929b8b5a44ff22f6f",
   "data/processed/daily_returns.csv": "fcd39d6816b08e3fe6c5858f7296493d1a41faf50a71072e133574e1de6273c4",
-  "data/processed/volatility_modeling_dataset.csv": "664e9a8b606f3b2833f1cefe1176eaf9f9daec7c45902c8d063c8c583bc9ad30",
   "data/raw/yahoo_ohlcv_20100101_20260916.csv": "2147948f0a09ac2fdc366ff2e0929eaedb821e3fbbbd14442e3e29828dc24eec"
 }

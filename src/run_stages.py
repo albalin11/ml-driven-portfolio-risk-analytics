@@ -24,7 +24,8 @@ OUTPUTS = {
     1: ['data/raw/yahoo_ohlcv_20100101_20260916.csv', 'data/raw/yahoo_ohlcv_20100101_20260916_metadata.json',
         'data/processed/clean_adjusted_close_prices.csv', 'data/processed/daily_returns.csv',
         'outputs/tables/part1_quality_report.json'],
-    2: ['data/processed/volatility_modeling_dataset.csv', 'outputs/tables/part2_quality_report.json'],
+    2: ['data/processed/volatility_modeling_dataset.csv', 'outputs/tables/feature_summary.csv',
+        'outputs/tables/part2_quality_report.json'],
     3: ['data/processed/portfolio_daily_returns.csv', 'data/processed/portfolio_modeling_dataset.csv',
         'outputs/tables/time_splits.csv', 'outputs/tables/validation_candidates.csv', 'outputs/tables/validation_metrics.csv',
         'outputs/tables/model_selection.json', 'outputs/tables/test_metrics.csv', 'outputs/tables/test_predictions.csv',
@@ -39,7 +40,7 @@ OUTPUTS = {
 }
 TESTS = {
     1: ['test_data_preparation'],
-    2: ['test_validation.SavedResultTests.test_original_part2_contract'],
+    2: ['test_feature_engineering'],
     3: ['test_validation.FormulaTests.test_portfolio_features_independent_arithmetic',
         'test_validation.FormulaTests.test_future_perturbation_cannot_change_past_features',
         'test_validation.SavedResultTests.test_split_target_windows', 'test_validation.SavedResultTests.test_test_scores_recomputed'],
@@ -55,7 +56,8 @@ def git(*args):
 
 def stage_files(part):
     script, notebook = NAMES[part-1]
-    helpers = ['src/data_preparation_checks.py'] if part == 1 else []
+    helpers = {1: ['src/data_preparation_checks.py'],
+               2: ['src/feature_engineering.py']}.get(part, [])
     return [f'scripts/{script}', f'notebooks/{notebook}', *helpers, *OUTPUTS[part]]
 
 def file_hashes(names):
@@ -70,7 +72,8 @@ def save_state(part, state):
 
 def input_hashes(part):
     # Changes to upstream data, formulas, tests or environment invalidate later checkpoints.
-    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_checkpoints.py', 'tests/test_data_preparation.py', 'tests/reference_snapshot.json',
+    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_checkpoints.py',
+             'tests/test_data_preparation.py', 'tests/test_feature_engineering.py', 'tests/reference_snapshot.json',
              'src/run_stages.py', 'src/run_pipeline.py', 'src/sync_notebooks.py', 'src/update_readme.py', 'src/verify_pipeline.py']
     for earlier in range(1, part):
         names += stage_files(earlier)
@@ -97,7 +100,7 @@ def verify_stage(part):
             assert output.output_type != 'error'
             assert not (output.output_type == 'stream' and output.name == 'stderr'), output
     file_hashes(stage_files(part))  # Every expected local artifact must exist.
-    if part in [1, 2]:
+    if part == 1:
         reference = json.loads((ROOT/'tests/reference_snapshot.json').read_text())
         raw = 'data/raw/yahoo_ohlcv_20100101_20260916.csv'
         if file_hashes([raw])[raw] == reference[raw]:

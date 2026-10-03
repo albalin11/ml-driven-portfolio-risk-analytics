@@ -110,17 +110,17 @@ A compact quality report records dimensions, date ranges and hashes used by late
 The raw snapshot is hash-checked and never overwritten. The notebook follows the script;
 shared checks live in `src/data_preparation_checks.py`.
 
-Part 2 preserves ten features: 1/5/20-day returns, 5/20/60-day historical sample volatility,
-expanding-peak drawdown, trailing 20-day correlation to SPY, and 60/120-day momentum.
+Part 2 forms a constant-weight portfolio by averaging the seven daily ETF returns. It keeps
+eight features: compounded 1/5/20-day returns, 5/20/60-day historical sample volatility,
+expanding-peak drawdown, and the trailing 20-day mean of the 21 distinct ETF correlations.
 All volatility uses `ddof=1` and annualization by `sqrt(252)`. The target on date t is
-`std(r[t+1], ..., r[t+5], ddof=1) * sqrt(252)`. It excludes the return on t.
-Features are available after the close of t. The initial 120-date warm-up and final
-five-date target tail are removed, with NaNs reported before removal.
+`std(r[t+1], ..., r[t+5], ddof=1) * sqrt(252)` and excludes the return on t.
+Features are available after the close of t. The first 59 dates needed by the 60-day window
+and the final five target dates are removed only after all columns have been calculated.
 
-The original ETF dataset remains **28,532 rows x 13 columns**, **2010-06-25 to 2026-09-09**:
-Date, asset, ten features and one target. Part 3 separately constructs **4,076 portfolio
-rows** on the same dates with the same feature/target conventions. Target start/end dates
-are audit fields and are never predictors.
+The Part 2 modeling dataset has **4,136 rows x 10 columns**, **2010-03-31 to 2026-09-09**:
+Date, eight features and one target. Independent formulas, all target windows and three
+prefix-invariance dates are checked before the dataset is saved.
 
 ## Volatility forecasting
 

@@ -64,11 +64,16 @@ class FormulaTests(unittest.TestCase):
         pd.testing.assert_frame_equal(before.loc[:dates[150]],after.loc[:dates[150]])
 
 class SavedResultTests(unittest.TestCase):
-    def test_original_part2_contract(self):
+    def test_part2_contract(self):
         data = pd.read_csv(ROOT/'data/processed/volatility_modeling_dataset.csv')
-        self.assertEqual(data.shape,(28532,13))
-        self.assertEqual((data.Date.min(),data.Date.max()),('2010-06-25','2026-09-09'))
-        self.assertFalse(data.duplicated(['Date','asset']).any())
+        expected = ['Date', 'return_1d', 'return_5d', 'return_20d',
+                    'volatility_5d', 'volatility_20d', 'volatility_60d',
+                    'drawdown', 'average_correlation_20d',
+                    'future_5d_realised_volatility']
+        self.assertEqual(data.shape, (4136, 10))
+        self.assertEqual(list(data.columns), expected)
+        self.assertEqual((data.Date.min(), data.Date.max()), ('2010-03-31', '2026-09-09'))
+        self.assertFalse(data.duplicated('Date').any())
 
     def test_split_target_windows(self):
         splits = pd.read_csv(TABLES/'time_splits.csv').set_index('split')
