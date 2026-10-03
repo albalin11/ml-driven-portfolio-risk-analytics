@@ -43,7 +43,7 @@ TESTS = {
     2: ['test_feature_engineering'],
     3: ['test_volatility_forecasting'],
     4: ['test_var_backtesting'],
-    5: ['test_validation'],
+    5: ['test_results_packaging'],
 }
 
 def git(*args):
@@ -68,7 +68,8 @@ def save_state(part, state):
 
 def input_hashes(part):
     # Changes to upstream data, formulas, tests or environment invalidate later checkpoints.
-    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_volatility_forecasting.py',
+    names = ['requirements.txt', '.gitignore', 'tests/test_validation.py', 'tests/test_results_packaging.py',
+             'tests/test_volatility_forecasting.py',
              'tests/test_var_backtesting.py',
              'tests/test_checkpoints.py',
              'tests/test_data_preparation.py', 'tests/test_feature_engineering.py', 'tests/reference_snapshot.json',
