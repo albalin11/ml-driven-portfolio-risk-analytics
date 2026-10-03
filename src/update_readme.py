@@ -97,19 +97,18 @@ backups. No Git history was replaced.
 
 ## Data preparation and feature engineering
 
-Part 1 audits duplicate dates, missing observations, positive finite prices and chronological
-order. Missing raw fields or trading sessions stop execution for investigation. Validated
-Adj Close prices retain every date without filling or dropping rows. Returns use price[t]/price[t-1]-1; only
-the initial undefined row is removed. Negative and zero returns are valid observations.
-Raw dates must match the XNYS US equity sessions from exchange_calendars
-4.13.2, including the expected start/end and early-close sessions. Weekends, regular
-holidays and special closures are separated; any missing or unexpected session stops
-execution. OHLC ranges, positive finite prices and nonnegative volume are checked.
-Daily changes of at least 1% in Adj Close / Close are recorded for review, not removed.
-The 2010 start and 2026-09-16 cutoff are project choices. Raw OHLCV is retained for auditing;
-Adj Close is used for returns so distributions are not confused with investment losses.
-The script is authoritative; the runner rejects a Part 1 notebook that has drifted from it.
-The script and tests import the same two checks from `src/data_preparation_checks.py`.
+Part 1 loads or downloads seven ETFs and checks that every expected XNYS trading session
+has a positive, finite Adj Close for each asset. Missing dates or prices stop execution;
+no prices are filled and no trading dates are dropped. The calendar includes holidays,
+special closures and early-close sessions. Existing ordinary OHLCV fields receive basic
+consistency checks, without comparing their ranges to Adj Close. The start date and cutoff
+are project choices.
+Returns use Adj Close to account for provider split and distribution adjustments:
+`return[t] = price[t] / price[t-1] - 1`. Only the first undefined return is removed;
+zero and negative returns are valid. Prices and returns are saved as separate CSVs.
+A compact quality report records dimensions, date ranges and hashes used by later stages.
+The raw snapshot is hash-checked and never overwritten. The notebook follows the script;
+shared checks live in `src/data_preparation_checks.py`.
 
 Part 2 preserves ten features: 1/5/20-day returns, 5/20/60-day historical sample volatility,
 expanding-peak drawdown, trailing 20-day correlation to SPY, and 60/120-day momentum.

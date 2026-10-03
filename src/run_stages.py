@@ -23,7 +23,7 @@ MESSAGES = [
 OUTPUTS = {
     1: ['data/raw/yahoo_ohlcv_20100101_20260916.csv', 'data/raw/yahoo_ohlcv_20100101_20260916_metadata.json',
         'data/processed/clean_adjusted_close_prices.csv', 'data/processed/daily_returns.csv',
-        'outputs/tables/part1_asset_audit.csv', 'outputs/tables/part1_missing_observations.csv', 'outputs/tables/part1_quality_report.json'],
+        'outputs/tables/part1_quality_report.json'],
     2: ['data/processed/volatility_modeling_dataset.csv', 'outputs/tables/part2_quality_report.json'],
     3: ['data/processed/portfolio_daily_returns.csv', 'data/processed/portfolio_modeling_dataset.csv',
         'outputs/tables/time_splits.csv', 'outputs/tables/validation_candidates.csv', 'outputs/tables/validation_metrics.csv',
