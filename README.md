@@ -6,6 +6,8 @@ Can simple machine-learning models improve forecasts of an equal-weight ETF port
 next-five-trading-day realised volatility? Do those forecasts produce well-calibrated
 five-day Value at Risk (VaR) limits on a held-out test period?
 
+**Models:** Historical Volatility, EWMA, Linear Regression, Random Forest and XGBoost.
+
 **Main result:** Linear Regression was selected on validation and recorded test MAE
 **0.035502** and RMSE **0.052967**, the lowest errors
 among the three final test models.

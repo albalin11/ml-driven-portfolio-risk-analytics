@@ -52,6 +52,10 @@ class ResultsPackagingTests(unittest.TestCase):
 
     def test_readme_is_current_and_has_no_old_risk_measure(self):
         readme = (ROOT / 'README.md').read_text(encoding='utf-8')
+        first_screen = '\n'.join(readme.splitlines()[:20])
+        for model in ['Historical Volatility', 'EWMA', 'Linear Regression',
+                      'Random Forest', 'XGBoost']:
+            self.assertIn(model, first_screen)
         self.assertNotRegex(readme, re.compile(r'Expected Shortfall|\bES\b', re.IGNORECASE))
         self.assertIn('0.035502', readme)
         self.assertIn('0.052967', readme)

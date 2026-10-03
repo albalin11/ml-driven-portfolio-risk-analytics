@@ -61,6 +61,11 @@ selected_model = selection['selected_ml_model']
 relative_rmse = summary['relative_test_rmse_to_best_baseline_percent']
 test_source = pd.read_csv(TABLES / 'test_metrics.csv')
 selected_test = test_source.set_index('model').loc[selected_model]
+model_order = [
+    'Historical Volatility', 'EWMA', 'Linear Regression', 'Random Forest', 'XGBoost'
+]
+assert set(validation['model']) == set(model_order)
+model_text = ', '.join(model_order[:-1]) + ' and ' + model_order[-1]
 best_baseline = (
     test_source[test_source['model'].isin(['Historical Volatility', 'EWMA'])]
     .sort_values('RMSE')
@@ -75,6 +80,8 @@ text = f'''# ML-Driven Portfolio Risk Analytics
 Can simple machine-learning models improve forecasts of an equal-weight ETF portfolio's
 next-five-trading-day realised volatility? Do those forecasts produce well-calibrated
 five-day Value at Risk (VaR) limits on a held-out test period?
+
+**Models:** {model_text}.
 
 **Main result:** Linear Regression was selected on validation and recorded test MAE
 **{selected_test['MAE']:.6f}** and RMSE **{selected_test['RMSE']:.6f}**, the lowest errors
